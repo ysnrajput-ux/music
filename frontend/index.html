@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+
+<meta
+name="viewport"
+content="width=device-width, initial-scale=1.0"
+/>
+
+<title>YSN MUSIC</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+
+<link rel="manifest" href="manifest.json">
+
+<meta name="theme-color" content="#00ff99">
+
+<style>
+
+body{
+background:#050505;
+color:white;
+font-family:Arial;
+overflow:hidden;
+}
+
+.glass{
+background:rgba(255,255,255,.06);
+backdrop-filter:blur(20px);
+border:1px solid rgba(255,255,255,.05);
+}
+
+.song-card{
+transition:.2s;
+}
+
+.song-card:hover{
+transform:scale(1.02);
+background:rgba(255,255,255,.08);
+}
+
+.bottom-nav{
+position:fixed;
+bottom:0;
+left:0;
+width:100%;
+height:85px;
+display:flex;
+justify-content:space-around;
+align-items:center;
+background:#111;
+z-index:999;
+}
+
+::-webkit-scrollbar{
+display:none;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="h-screen flex flex-col">
+
+<header class="p-4 glass">
+
+<h1 class="text-4xl font-black text-green-400">
+YSN MUSIC
+</h1>
+
+<p class="text-gray-400 mt-1">
+Global Trending • Punjabi • Bollywood • English Hits
+</p>
+
+</header>
+
+<div class="p-4">
+
+<input
+id="searchInput"
+placeholder="Search songs or artists"
+class="w-full p-4 rounded-3xl glass outline-none"
+/>
+
+</div>
+
+<div
+id="songList"
+class="flex-1 overflow-y-auto px-4 pb-44"
+></div>
+
+<div
+id="miniPlayer"
+class="hidden fixed bottom-24 left-3 right-3 glass p-3 rounded-3xl items-center gap-3 z-50"
+>
+
+<img
+id="miniCover"
+class="w-14 h-14 rounded-2xl object-cover"
+/>
+
+<div class="flex-1 overflow-hidden">
+
+<h2
+id="miniTitle"
+class="font-bold truncate"
+></h2>
+
+<p
+id="miniArtist"
+class="text-gray-400 text-sm truncate"
+></p>
+
+</div>
+
+<button
+id="playBtn"
+class="text-3xl text-green-400"
+>
+▶
+</button>
+
+</div>
+
+<nav class="bottom-nav">
+
+<button class="text-2xl">
+🏠
+</button>
+
+<button class="text-2xl">
+🔍
+</button>
+
+<button class="text-2xl">
+🎵
+</button>
+
+<button class="text-2xl">
+⬇
+</button>
+
+</nav>
+
+</div>
+
+<audio id="audio"></audio>
+
+<script src="app.js"></script>
+
+</body>
+</html>
