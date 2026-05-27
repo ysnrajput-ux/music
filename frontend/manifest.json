@@ -1,0 +1,23 @@
+{
+  "name": "YSN MUSIC",
+  "short_name": "YSN",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#050505",
+  "theme_color": "#00ff99",
+  "orientation": "portrait",
+  "scope": "./",
+  "description": "Modern music streaming app by YSNRAJPUT",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/727/727245.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/727/727245.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
