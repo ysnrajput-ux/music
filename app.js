@@ -1,4 +1,4 @@
-const API = 'https://ysnrajput-ux.github.io/music';
+const API = 'https://music-dt1f.onrender.com';
 
 const searchInput = document.getElementById('searchInput');
 const songList = document.getElementById('songList');
