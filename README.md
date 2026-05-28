@@ -1,10 +1,9 @@
 # YSN MUSIC
 
 Modern music streaming web app inspired by Spotify.
-
-### Site is Live at ->
-https://ysnrajput-ux.github.io/music/
-
+---
+### Site is Live at -> https://ysnrajput-ux.github.io/music/
+---
 ## Features
 
 - Song search
