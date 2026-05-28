@@ -37,16 +37,33 @@ app.get('/stream/:id', async (req, res) => {
 
     const url = `https://www.youtube.com/watch?v=${req.params.id}`;
 
-    res.setHeader('Content-Type', 'audio/mpeg');
-    res.setHeader('Accept-Ranges', 'bytes');
+    const info = await ytdl.getInfo(url);
 
-    ytdl(url, {
-      filter: 'audioonly',
-      quality: 'lowestaudio'
-    }).pipe(res);
+    const format = ytdl.chooseFormat(info.formats, {
+      quality: 'lowestaudio',
+      filter: 'audioonly'
+    });
+
+    if (!format || !format.url) {
+
+      return res.status(404).json({
+        error: 'No audio stream found'
+      });
+
+    }
+
+    res.json({
+      url: format.url
+    });
 
   } catch (err) {
-    res.status(500).json({ error: err.message });
+
+    console.error(err);
+
+    res.status(500).json({
+      error: err.message
+    });
+
   }
 
 });
