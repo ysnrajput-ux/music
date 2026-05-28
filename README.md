@@ -24,25 +24,7 @@ Modern music streaming web app inspired by Spotify.
 - Express
 - yt-search
 - ytdl-core
-
-## Run Backend
-
-```bash
-cd backend
-npm install
-node server.js
-```
-
-## Run Frontend
-
-Use VS Code Live Server.
-
-Open:
-
-```txt
-frontend/index.html
-```
-
+- 
 ## Author
 
 YSNRAJPUT
