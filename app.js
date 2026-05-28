@@ -81,43 +81,65 @@ function renderSongs(songs){
 
 }
 
-function playSong(song){
+async function playSong(song){
 
-  currentSong = song;
+  try{
 
-  audio.src = `${API}/stream/${song.videoId}`;
+    currentSong = song;
 
-  audio.play();
+    const res = await fetch(`${API}/stream/${song.videoId}`);
 
-  miniPlayer.classList.remove('hidden');
+    const data = await res.json();
 
-  miniPlayer.classList.add('flex');
+    if(!data.url){
 
-  miniCover.src = song.thumbnail;
+      alert('Stream unavailable');
 
-  miniTitle.innerText = song.title;
+      return;
 
-  miniArtist.innerText = song.artist;
+    }
 
-  playBtn.innerText='⏸';
+    audio.src = data.url;
 
-  if('mediaSession' in navigator){
+    await audio.play();
 
-    navigator.mediaSession.metadata = new MediaMetadata({
+    miniPlayer.classList.remove('hidden');
 
-      title: song.title,
+    miniPlayer.classList.add('flex');
 
-      artist: song.artist,
+    miniCover.src = song.thumbnail;
 
-      artwork:[
-        {
-          src:song.thumbnail,
-          sizes:'512x512',
-          type:'image/png'
-        }
-      ]
+    miniTitle.innerText = song.title;
 
-    });
+    miniArtist.innerText = song.artist;
+
+    playBtn.innerText='⏸';
+
+    if('mediaSession' in navigator){
+
+      navigator.mediaSession.metadata = new MediaMetadata({
+
+        title: song.title,
+
+        artist: song.artist,
+
+        artwork:[
+          {
+            src:song.thumbnail,
+            sizes:'512x512',
+            type:'image/png'
+          }
+        ]
+
+      });
+
+    }
+
+  }catch(err){
+
+    console.error(err);
+
+    alert('Playback failed');
 
   }
 
