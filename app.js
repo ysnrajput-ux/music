@@ -76,9 +76,7 @@ searchInput.addEventListener("input", () => {
   );
 resultsSection.classList.remove("hidden");
 
-resultsSection.scrollIntoView({
-    behavior: "smooth"
-});
+
   renderSongs(results);
 
 });
