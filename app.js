@@ -63,8 +63,6 @@ searchInput.addEventListener("input", () => {
 
   if (value === "") {
 
-    resultsSection.classList.add("hidden");
-
     renderSongs([]);
 
     return;
@@ -74,8 +72,6 @@ searchInput.addEventListener("input", () => {
     song.title.toLowerCase().includes(value) ||
     song.artist.toLowerCase().includes(value)
   );
-resultsSection.classList.remove("hidden");
-
 
   renderSongs(results);
 
