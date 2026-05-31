@@ -20,7 +20,7 @@ let isPlaying = false;
 
 // Default search on load
 window.addEventListener('load', () => {
-  searchSongs('popular music 2024');
+  searchSongs('Trending Punjabi Bollywood English Songs');
 });
 
 // Search on button click
