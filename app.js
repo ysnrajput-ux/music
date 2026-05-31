@@ -17,23 +17,20 @@ const closePlayerBtn = document.getElementById('closePlayerBtn');
 
 let currentSong = null;
 let isPlaying = false;
+let retryTimeout = null;
 
-// Default search on load
+// Search functionality
 window.addEventListener('load', () => {
   searchSongs('Trending Punjabi Bollywood English Songs');
 });
 
-// Search on button click
 searchButton.addEventListener('click', () => {
   const query = searchInput.value.trim();
   if (query) {
     searchSongs(query);
-  } else {
-    showToast('Please enter a search term');
   }
 });
 
-// Search on Enter key
 searchInput.addEventListener('keypress', (e) => {
   if (e.key === 'Enter') {
     const query = searchInput.value.trim();
@@ -45,15 +42,20 @@ searchInput.addEventListener('keypress', (e) => {
 
 async function searchSongs(query) {
   try {
-    // Show loading state
     songList.classList.add('hidden');
     loadingState.classList.remove('hidden');
     emptyState.classList.add('hidden');
     
     const res = await fetch(`${API}/search?q=${encodeURIComponent(query)}`);
     
+    if (res.status === 429) {
+      showToast('Too many requests. Please wait a moment.');
+      loadingState.classList.add('hidden');
+      return;
+    }
+    
     if (!res.ok) {
-      throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+      throw new Error(`HTTP ${res.status}`);
     }
     
     const songs = await res.json();
@@ -74,113 +76,36 @@ async function searchSongs(query) {
   }
 }
 
-function showEmptyState() {
-  songList.classList.add('hidden');
-  loadingState.classList.add('hidden');
-  emptyState.classList.remove('hidden');
-  songList.innerHTML = '';
-}
-
-function showToast(message) {
-  // Create toast element
-  const toast = document.createElement('div');
-  toast.className = 'fixed top-20 left-1/2 transform -translate-x-1/2 bg-red-500/90 text-white px-6 py-3 rounded-xl z-[1000] text-sm font-medium shadow-lg';
-  toast.textContent = message;
-  document.body.appendChild(toast);
-  
-  setTimeout(() => {
-    toast.style.opacity = '0';
-    setTimeout(() => toast.remove(), 300);
-  }, 3000);
-}
-
-function renderSongs(songs) {
-  songList.classList.remove('hidden');
-  emptyState.classList.add('hidden');
-  songList.innerHTML = '';
-  
-  songs.forEach((song, index) => {
-    const card = document.createElement('div');
-    card.className = 'glass-card rounded-xl p-4 cursor-pointer group transition-all duration-300';
-    card.style.opacity = '0';
-    card.style.transform = 'translateY(20px)';
-    
-    // Format duration
-    const duration = song.duration || '3:30';
-    
-    card.innerHTML = `
-      <div class="flex items-start gap-4">
-        <div class="relative">
-          <img
-            src="${song.thumbnail || 'https://via.placeholder.com/80x80?text=No+Image'}"
-            class="w-20 h-20 rounded-lg object-cover shadow-lg"
-            alt="${escapeHtml(song.title)}"
-            onerror="this.src='https://via.placeholder.com/80x80?text=No+Image'"
-          />
-          <div class="absolute inset-0 bg-black/50 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-            <button class="play-now-btn play-button w-10 h-10 rounded-full text-black font-bold flex items-center justify-center text-xl">
-              ▶
-            </button>
-          </div>
-        </div>
-        
-        <div class="flex-1 min-w-0">
-          <h2 class="font-semibold text-white truncate pr-2" title="${escapeHtml(song.title)}">
-            ${escapeHtml(song.title)}
-          </h2>
-          <p class="text-gray-400 text-sm truncate mt-1" title="${escapeHtml(song.artist)}">
-            ${escapeHtml(song.artist)}
-          </p>
-          <p class="text-gray-500 text-xs mt-2">${duration}</p>
-        </div>
-        
-        <button class="play-button px-4 py-2 rounded-lg text-black font-semibold text-sm transition transform hover:scale-105">
-          Play
-        </button>
-      </div>
-    `;
-    
-    // Add click handlers
-    const playButton = card.querySelector('.play-button');
-    const playNowBtn = card.querySelector('.play-now-btn');
-    
-    playButton.onclick = (e) => {
-      e.stopPropagation();
-      playSong(song);
-    };
-    
-    if (playNowBtn) {
-      playNowBtn.onclick = (e) => {
-        e.stopPropagation();
-        playSong(song);
-      };
-    }
-    
-    card.onclick = () => playSong(song);
-    
-    songList.appendChild(card);
-    
-    // Animate in
-    setTimeout(() => {
-      card.style.transition = 'all 0.3s ease-out';
-      card.style.opacity = '1';
-      card.style.transform = 'translateY(0)';
-    }, index * 50);
-  });
-}
-
-async function playSong(song) {
+async function playSong(song, retryCount = 0) {
   try {
     currentSong = song;
     
-    // Show loading indicator on play button
     showToast(`Loading: ${song.title}`);
     
+    // Try to get stream URL
     const res = await fetch(`${API}/stream/${song.videoId}`);
     
-    if (!res.ok) {
+    if (res.status === 429) {
       const error = await res.json();
-      throw new Error(error.error || 'Failed to get stream');
+      const retryAfter = error.retryAfter || 30;
+      
+      showToast(`Rate limited. Retrying in ${retryAfter} seconds...`);
+      
+      // Clear any existing timeout
+      if (retryTimeout) clearTimeout(retryTimeout);
+      
+      // Retry after the specified time
+      retryTimeout = setTimeout(() => {
+        if (currentSong === song) {
+          playSong(song, retryCount + 1);
+        }
+      }, retryAfter * 1000);
+      
+      return;
+    }
+    
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}`);
     }
     
     const data = await res.json();
@@ -201,10 +126,9 @@ async function playSong(song) {
     miniArtist.textContent = song.artist;
     playPauseBtn.textContent = '⏸';
     
-    // Update document title
     document.title = `${song.title} - YSN MUSIC`;
     
-    // Media Session API for better controls
+    // Media Session API
     if ('mediaSession' in navigator) {
       navigator.mediaSession.metadata = new MediaMetadata({
         title: song.title,
@@ -214,17 +138,118 @@ async function playSong(song) {
         ]
       });
       
-      // Set action handlers
       navigator.mediaSession.setActionHandler('play', () => audio.play());
       navigator.mediaSession.setActionHandler('pause', () => audio.pause());
-      navigator.mediaSession.setActionHandler('previoustrack', () => {});
-      navigator.mediaSession.setActionHandler('nexttrack', () => {});
     }
     
   } catch (err) {
     console.error('Playback error:', err);
-    showToast(`Playback failed: ${err.message}`);
+    
+    if (retryCount < 2) {
+      showToast(`Retrying (${retryCount + 1}/2)...`);
+      setTimeout(() => {
+        if (currentSong === song) {
+          playSong(song, retryCount + 1);
+        }
+      }, 2000);
+    } else {
+      showToast('Unable to play this song. Please try another one.');
+    }
   }
+}
+
+// Alternative play method using direct audio endpoint
+async function playSongDirect(song) {
+  try {
+    showToast(`Streaming: ${song.title}`);
+    audio.src = `${API}/audio/${song.videoId}`;
+    await audio.play();
+    isPlaying = true;
+    
+    miniPlayer.classList.remove('hidden');
+    miniCover.src = song.thumbnail;
+    miniTitle.textContent = song.title;
+    miniArtist.textContent = song.artist;
+    playPauseBtn.textContent = '⏸';
+    
+  } catch (err) {
+    console.error('Direct playback error:', err);
+    showToast('Playback failed. Please try another song.');
+  }
+}
+
+function renderSongs(songs) {
+  songList.classList.remove('hidden');
+  emptyState.classList.add('hidden');
+  songList.innerHTML = '';
+  
+  songs.forEach((song, index) => {
+    const card = document.createElement('div');
+    card.className = 'glass-card rounded-xl p-4 cursor-pointer group transition-all duration-300';
+    card.style.opacity = '0';
+    card.style.transform = 'translateY(20px)';
+    
+    card.innerHTML = `
+      <div class="flex items-start gap-4">
+        <img
+          src="${song.thumbnail || 'https://via.placeholder.com/80x80?text=No+Image'}"
+          class="w-20 h-20 rounded-lg object-cover shadow-lg"
+          alt="${escapeHtml(song.title)}"
+          onerror="this.src='https://via.placeholder.com/80x80?text=No+Image'"
+        />
+        <div class="flex-1 min-w-0">
+          <h2 class="font-semibold text-white truncate">${escapeHtml(song.title)}</h2>
+          <p class="text-gray-400 text-sm truncate mt-1">${escapeHtml(song.artist)}</p>
+          <p class="text-gray-500 text-xs mt-2">${song.duration}</p>
+        </div>
+        <button class="play-button px-4 py-2 rounded-lg text-black font-semibold text-sm">
+          Play
+        </button>
+      </div>
+    `;
+    
+    const playButton = card.querySelector('.play-button');
+    playButton.onclick = (e) => {
+      e.stopPropagation();
+      playSong(song);
+    };
+    
+    card.onclick = () => playSong(song);
+    
+    songList.appendChild(card);
+    
+    setTimeout(() => {
+      card.style.transition = 'all 0.3s ease-out';
+      card.style.opacity = '1';
+      card.style.transform = 'translateY(0)';
+    }, index * 50);
+  });
+}
+
+function showEmptyState() {
+  songList.classList.add('hidden');
+  loadingState.classList.add('hidden');
+  emptyState.classList.remove('hidden');
+  songList.innerHTML = '';
+}
+
+function showToast(message) {
+  const toast = document.createElement('div');
+  toast.className = 'fixed top-20 left-1/2 transform -translate-x-1/2 bg-gray-900/95 text-white px-6 py-3 rounded-xl z-[1000] text-sm font-medium shadow-lg border border-green-400/30';
+  toast.textContent = message;
+  document.body.appendChild(toast);
+  
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
 }
 
 // Play/Pause button
@@ -238,16 +263,15 @@ playPauseBtn.onclick = () => {
   }
 };
 
-// Close mini player
 closePlayerBtn.onclick = () => {
   miniPlayer.classList.add('hidden');
   audio.pause();
   audio.src = '';
   isPlaying = false;
   document.title = 'YSN MUSIC';
+  if (retryTimeout) clearTimeout(retryTimeout);
 };
 
-// Audio event handlers
 audio.onplay = () => {
   isPlaying = true;
   playPauseBtn.textContent = '⏸';
@@ -258,62 +282,12 @@ audio.onpause = () => {
   playPauseBtn.textContent = '▶';
 };
 
-audio.onerror = (e) => {
-  console.error('Audio error:', e);
-  showToast('Playback error occurred');
+audio.onerror = () => {
+  showToast('Playback error. Try another song.');
   playPauseBtn.textContent = '▶';
 };
 
-audio.onended = () => {
-  playPauseBtn.textContent = '▶';
-  isPlaying = false;
-};
-
-// Helper function to escape HTML
-function escapeHtml(str) {
-  if (!str) return '';
-  const div = document.createElement('div');
-  div.textContent = str;
-  return div.innerHTML;
-}
-
-// PWA Service Worker registration
+// Service Worker
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('sw.js').catch(err => {
-    console.log('ServiceWorker registration failed:', err);
-  });
-}
-
-// Keyboard shortcuts
-document.addEventListener('keydown', (e) => {
-  // Space bar for play/pause
-  if (e.code === 'Space' && !e.target.matches('input, textarea')) {
-    e.preventDefault();
-    if (currentSong) {
-      if (audio.paused) {
-        audio.play();
-      } else {
-        audio.pause();
-      }
-    }
-  }
-});
-
-// Save current song position on page unload
-window.addEventListener('beforeunload', () => {
-  if (currentSong && audio.currentTime) {
-    localStorage.setItem('lastSong', JSON.stringify({
-      song: currentSong,
-      time: audio.currentTime
-    }));
-  }
-});
-
-// Load last played song (optional)
-const lastSongData = localStorage.getItem('lastSong');
-if (lastSongData) {
-  const { song, time } = JSON.parse(lastSongData);
-  if (song && time < 300) { // Only if less than 5 minutes ago
-    // Optionally restore last song
-  }
+  navigator.serviceWorker.register('sw.js').catch(console.log);
 }
