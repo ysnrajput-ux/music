@@ -19,18 +19,22 @@ let currentSong = null;
 let isPlaying = false;
 let retryTimeout = null;
 
-// Search functionality
+// Initialize
 window.addEventListener('load', () => {
   searchSongs('Trending Punjabi Bollywood English Songs');
 });
 
+// Search button click
 searchButton.addEventListener('click', () => {
   const query = searchInput.value.trim();
   if (query) {
     searchSongs(query);
+  } else {
+    showToast('Please enter a search term');
   }
 });
 
+// Enter key search
 searchInput.addEventListener('keypress', (e) => {
   if (e.key === 'Enter') {
     const query = searchInput.value.trim();
@@ -40,6 +44,44 @@ searchInput.addEventListener('keypress', (e) => {
   }
 });
 
+// Play/Pause button
+playPauseBtn.onclick = () => {
+  if (audio.paused) {
+    audio.play();
+    playPauseBtn.textContent = '⏸';
+  } else {
+    audio.pause();
+    playPauseBtn.textContent = '▶';
+  }
+};
+
+// Close player button
+closePlayerBtn.onclick = () => {
+  miniPlayer.classList.add('hidden');
+  audio.pause();
+  audio.src = '';
+  isPlaying = false;
+  document.title = 'YSN MUSIC';
+  if (retryTimeout) clearTimeout(retryTimeout);
+};
+
+// Audio event handlers
+audio.onplay = () => {
+  isPlaying = true;
+  playPauseBtn.textContent = '⏸';
+};
+
+audio.onpause = () => {
+  isPlaying = false;
+  playPauseBtn.textContent = '▶';
+};
+
+audio.onerror = () => {
+  showToast('Playback error. Try another song.');
+  playPauseBtn.textContent = '▶';
+};
+
+// Search function
 async function searchSongs(query) {
   try {
     songList.classList.add('hidden');
@@ -76,135 +118,7 @@ async function searchSongs(query) {
   }
 }
 
-async function playSong(song, retryCount = 0) {
-  try {
-    currentSong = song;
-    
-    showToast(`Loading: ${song.title}`);
-    
-    // Try to get stream URL
-    const res = await fetch(`${API}/stream/${song.videoId}`);
-    
-    if (res.status === 429) {
-      const error = await res.json();
-      const retryAfter = error.retryAfter || 30;
-      
-      showToast(`Rate limited. Retrying in ${retryAfter} seconds...`);
-      
-      // Clear any existing timeout
-      if (retryTimeout) clearTimeout(retryTimeout);
-      
-      // Retry after the specified time
-      retryTimeout = setTimeout(() => {
-        if (currentSong === song) {
-          playSong(song, retryCount + 1);
-        }
-      }, retryAfter * 1000);
-      
-      return;
-    }
-    
-    if (!res.ok) {
-      throw new Error(`HTTP ${res.status}`);
-    }
-    
-    const data = await res.json();
-    
-    if (!data.url) {
-      throw new Error('No stream URL received');
-    }
-    
-    // Set audio source and play
-    audio.src = data.url;
-    await audio.play();
-    isPlaying = true;
-    
-    // Update mini player
-    miniPlayer.classList.remove('hidden');
-    miniCover.src = song.thumbnail || 'https://via.placeholder.com/80x80?text=No+Image';
-    miniTitle.textContent = song.title;
-    miniArtist.textContent = song.artist;
-    playPauseBtn.textContent = '⏸';
-    
-    document.title = `${song.title} - YSN MUSIC`;
-    
-    // Media Session API
-    if ('mediaSession' in navigator) {
-      navigator.mediaSession.metadata = new MediaMetadata({
-        title: song.title,
-        artist: song.artist,
-        artwork: [
-          { src: song.thumbnail, sizes: '512x512', type: 'image/jpeg' }
-        ]
-      });
-      
-      navigator.mediaSession.setActionHandler('play', () => audio.play());
-      navigator.mediaSession.setActionHandler('pause', () => audio.pause());
-    }
-    
-  } catch (err) {
-    console.error('Playback error:', err);
-    
-    if (retryCount < 2) {
-      showToast(`Retrying (${retryCount + 1}/2)...`);
-      setTimeout(() => {
-        if (currentSong === song) {
-          playSong(song, retryCount + 1);
-        }
-      }, 2000);
-    } else {
-      showToast('Unable to play this song. Please try another one.');
-    }
-  }
-}
-
-async function playSongWithRetry(song, retries = 3) {
-  for (let i = 0; i < retries; i++) {
-    try {
-      const res = await fetch(`${API}/stream/${song.videoId}`);
-      
-      if (res.status === 429) {
-        console.log(`Rate limited, attempt ${i + 1}/${retries}`);
-        await new Promise(resolve => setTimeout(resolve, 2000 * (i + 1)));
-        continue;
-      }
-      
-      const data = await res.json();
-      if (data.url) {
-        audio.src = data.url;
-        await audio.play();
-        return true;
-      }
-    } catch (err) {
-      console.log(`Attempt ${i + 1} failed:`, err.message);
-      if (i === retries - 1) throw err;
-      await new Promise(resolve => setTimeout(resolve, 2000));
-    }
-  }
-  return false;
-}
-
-
-// Alternative play method using direct audio endpoint
-async function playSongDirect(song) {
-  try {
-    showToast(`Streaming: ${song.title}`);
-    audio.src = `${API}/audio/${song.videoId}`;
-    await audio.play();
-    isPlaying = true;
-    
-    miniPlayer.classList.remove('hidden');
-    miniCover.src = song.thumbnail;
-    miniTitle.textContent = song.title;
-    miniArtist.textContent = song.artist;
-    playPauseBtn.textContent = '⏸';
-    
-  } catch (err) {
-    console.error('Direct playback error:', err);
-    showToast('Playback failed. Please try another song.');
-  }
-}
-
+// Render songs to UI
 function renderSongs(songs) {
   songList.classList.remove('hidden');
   emptyState.classList.add('hidden');
@@ -253,6 +167,120 @@ function renderSongs(songs) {
   });
 }
 
+// UPDATED: playSongWithRetry function
+async function playSongWithRetry(song, retries = 3) {
+  currentSong = song;
+  showToast(`Loading: ${song.title}`);
+  
+  for (let i = 0; i < retries; i++) {
+    try {
+      console.log(`Attempt ${i + 1}/${retries} for ${song.title}`);
+      
+      const res = await fetch(`${API}/stream/${song.videoId}`);
+      
+      // Handle rate limiting
+      if (res.status === 429) {
+        const waitTime = 2000 * (i + 1); // 2s, 4s, 6s
+        showToast(`Rate limited. Retrying in ${waitTime/1000}s... (${i + 1}/${retries})`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+        continue;
+      }
+      
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
+      }
+      
+      const data = await res.json();
+      
+      if (!data.url) {
+        throw new Error('No stream URL received');
+      }
+      
+      // Success - play the audio
+      audio.src = data.url;
+      await audio.play();
+      isPlaying = true;
+      
+      // Update mini player
+      miniPlayer.classList.remove('hidden');
+      miniCover.src = song.thumbnail || 'https://via.placeholder.com/80x80?text=No+Image';
+      miniTitle.textContent = song.title;
+      miniArtist.textContent = song.artist;
+      playPauseBtn.textContent = '⏸';
+      
+      document.title = `${song.title} - YSN MUSIC`;
+      
+      // Media Session API
+      if ('mediaSession' in navigator) {
+        navigator.mediaSession.metadata = new MediaMetadata({
+          title: song.title,
+          artist: song.artist,
+          artwork: [
+            { src: song.thumbnail, sizes: '512x512', type: 'image/jpeg' }
+          ]
+        });
+        
+        navigator.mediaSession.setActionHandler('play', () => audio.play());
+        navigator.mediaSession.setActionHandler('pause', () => audio.pause());
+      }
+      
+      showToast(`Now playing: ${song.title}`);
+      return true;
+      
+    } catch (err) {
+      console.error(`Attempt ${i + 1} failed:`, err.message);
+      
+      if (i === retries - 1) {
+        // Last attempt failed
+        showToast(`Failed to play "${song.title}". Please try another song.`);
+        return false;
+      }
+      
+      // Wait before retry
+      await new Promise(resolve => setTimeout(resolve, 2000));
+    }
+  }
+  return false;
+}
+
+// Direct audio endpoint (fallback method)
+async function playSongDirect(song) {
+  try {
+    showToast(`Streaming directly: ${song.title}`);
+    audio.src = `${API}/audio/${song.videoId}`;
+    await audio.play();
+    isPlaying = true;
+    
+    miniPlayer.classList.remove('hidden');
+    miniCover.src = song.thumbnail;
+    miniTitle.textContent = song.title;
+    miniArtist.textContent = song.artist;
+    playPauseBtn.textContent = '⏸';
+    
+    return true;
+  } catch (err) {
+    console.error('Direct playback error:', err);
+    showToast('Playback failed. Please try another song.');
+    return false;
+  }
+}
+
+// Main play function
+async function playSong(song) {
+  // Clear any existing retry timeout
+  if (retryTimeout) clearTimeout(retryTimeout);
+  
+  // Try with retry logic first
+  const success = await playSongWithRetry(song, 3);
+  
+  // If retry fails, try direct method
+  if (!success) {
+    console.log('Retry failed, trying direct method...');
+    await playSongDirect(song);
+  }
+}
+
+// Helper functions
 function showEmptyState() {
   songList.classList.add('hidden');
   loadingState.classList.add('hidden');
@@ -278,41 +306,6 @@ function escapeHtml(str) {
   div.textContent = str;
   return div.innerHTML;
 }
-
-// Play/Pause button
-playPauseBtn.onclick = () => {
-  if (audio.paused) {
-    audio.play();
-    playPauseBtn.textContent = '⏸';
-  } else {
-    audio.pause();
-    playPauseBtn.textContent = '▶';
-  }
-};
-
-closePlayerBtn.onclick = () => {
-  miniPlayer.classList.add('hidden');
-  audio.pause();
-  audio.src = '';
-  isPlaying = false;
-  document.title = 'YSN MUSIC';
-  if (retryTimeout) clearTimeout(retryTimeout);
-};
-
-audio.onplay = () => {
-  isPlaying = true;
-  playPauseBtn.textContent = '⏸';
-};
-
-audio.onpause = () => {
-  isPlaying = false;
-  playPauseBtn.textContent = '▶';
-};
-
-audio.onerror = () => {
-  showToast('Playback error. Try another song.');
-  playPauseBtn.textContent = '▶';
-};
 
 // Service Worker
 if ('serviceWorker' in navigator) {
