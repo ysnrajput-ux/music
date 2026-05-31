@@ -86,3 +86,6 @@ searchInput.addEventListener("input", () => {
 
 });
 console.log("APP LOADED");
+searchInput.addEventListener("input", () => {
+  console.log("typing:", searchInput.value);
+});
