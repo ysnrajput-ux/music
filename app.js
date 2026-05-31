@@ -1,3 +1,5 @@
+const resultsSection =
+document.getElementById("resultsSection");
 const searchInput = document.getElementById("searchInput");
 const songList = document.getElementById("songList");
 
@@ -60,15 +62,23 @@ searchInput.addEventListener("input", () => {
   const value = searchInput.value.toLowerCase().trim();
 
   if (value === "") {
+
+    resultsSection.classList.add("hidden");
+
     renderSongs([]);
+
     return;
-  }
+}
 
   const results = demoSongs.filter(song =>
     song.title.toLowerCase().includes(value) ||
     song.artist.toLowerCase().includes(value)
   );
+resultsSection.classList.remove("hidden");
 
+resultsSection.scrollIntoView({
+    behavior: "smooth"
+});
   renderSongs(results);
 
 });
