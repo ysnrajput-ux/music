@@ -158,6 +158,33 @@ async function playSong(song, retryCount = 0) {
   }
 }
 
+async function playSongWithRetry(song, retries = 3) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const res = await fetch(`${API}/stream/${song.videoId}`);
+      
+      if (res.status === 429) {
+        console.log(`Rate limited, attempt ${i + 1}/${retries}`);
+        await new Promise(resolve => setTimeout(resolve, 2000 * (i + 1)));
+        continue;
+      }
+      
+      const data = await res.json();
+      if (data.url) {
+        audio.src = data.url;
+        await audio.play();
+        return true;
+      }
+    } catch (err) {
+      console.log(`Attempt ${i + 1} failed:`, err.message);
+      if (i === retries - 1) throw err;
+      await new Promise(resolve => setTimeout(resolve, 2000));
+    }
+  }
+  return false;
+}
+
+
 // Alternative play method using direct audio endpoint
 async function playSongDirect(song) {
   try {
