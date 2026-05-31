@@ -72,11 +72,10 @@ if(list.length === 0){
       ▶ Play
     </button>
 
-    <button
-    class="glass px-4 py-2 rounded-xl">
-      ❤️
-    </button>
-
+   <button
+class="glass px-4 py-2 rounded-xl fav-btn">
+❤️
+</button>
   </div>
 
 </div>
