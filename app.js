@@ -110,3 +110,33 @@ console.log("APP LOADED");
 searchInput.addEventListener("input", () => {
   console.log("typing:", searchInput.value);
 });
+const themeBtn =
+document.getElementById("themeBtn");
+
+const themes = [
+"#050505",
+"#220033",
+"#001933",
+"#001f10",
+"#2b0000",
+"#000000",
+"#1f1700",
+"#001f26",
+"#2d033b",
+"#202020"
+];
+
+let currentTheme = 0;
+
+themeBtn.onclick = () => {
+
+currentTheme++;
+
+if(currentTheme >= themes.length){
+currentTheme = 0;
+}
+
+document.body.style.background =
+themes[currentTheme];
+
+};
