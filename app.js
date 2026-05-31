@@ -1,6 +1,30 @@
 let favorites = JSON.parse(
 localStorage.getItem("favorites") || "[]"
 );
+function toggleFavorite(song){
+
+const exists = favorites.find(
+s => s.title === song.title
+);
+
+if(exists){
+
+favorites = favorites.filter(
+s => s.title !== song.title
+);
+
+}else{
+
+favorites.push(song);
+
+}
+
+localStorage.setItem(
+"favorites",
+JSON.stringify(favorites)
+);
+
+}
 const searchInput = document.getElementById("searchInput");
 const songList = document.getElementById("songList");
 
