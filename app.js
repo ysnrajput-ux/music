@@ -1,8 +1,6 @@
 let favorites = JSON.parse(
 localStorage.getItem("favorites") || "[]"
 );
-const resultsSection =
-document.getElementById("resultsSection");
 const searchInput = document.getElementById("searchInput");
 const songList = document.getElementById("songList");
 
@@ -14,15 +12,15 @@ const demoSongs = [
   { title: "Shape Of You", artist: "Ed Sheeran" },
   { title: "Blinding Lights", artist: "The Weeknd" }
 ];
-if(list.length === 0){
-songList.innerHTML = `
-<p class="text-gray-400 text-center col-span-full">
-Search music...
-</p>`;
-return;
-}
-function renderSongs(list) {
 
+function renderSongs(list) {
+if(list.length === 0){
+  songList.innerHTML = `
+  <p class="text-gray-400 text-center col-span-full">
+    Search music...
+  </p>`;
+  return;
+}
   songList.innerHTML = "";
 
   list.forEach(song => {
