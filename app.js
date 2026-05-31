@@ -1,397 +1,76 @@
-const API = 'https://music-dt1f.onrender.com';
+const searchInput = document.getElementById("searchInput");
+const songList = document.getElementById("songList");
 
-// DOM Elements
-const searchInput = document.getElementById('searchInput');
-const searchButton = document.getElementById('searchButton');
-const songList = document.getElementById('songList');
-const loadingState = document.getElementById('loadingState');
-const emptyState = document.getElementById('emptyState');
-const audio = document.getElementById('audio');
+const demoSongs = [
+{
+title:"Kesariya",
+artist:"Arijit Singh"
+},
+{
+title:"Tum Hi Ho",
+artist:"Arijit Singh"
+},
+{
+title:"Apna Bana Le",
+artist:"Arijit Singh"
+},
+{
+title:"Heeriye",
+artist:"Arijit Singh"
+},
+{
+title:"Shape Of You",
+artist:"Ed Sheeran"
+},
+{
+title:"Blinding Lights",
+artist:"The Weeknd"
+}
+];
 
-const miniPlayer = document.getElementById('miniPlayer');
-const miniCover = document.getElementById('miniCover');
-const miniTitle = document.getElementById('miniTitle');
-const miniArtist = document.getElementById('miniArtist');
-const playPauseBtn = document.getElementById('playPauseBtn');
-const closePlayerBtn = document.getElementById('closePlayerBtn');
-const miniPlayerExpand = document.getElementById('miniPlayerExpand');
+function renderSongs(list){
 
-const videoSection = document.getElementById('videoSection');
-const youtubePlayer = document.getElementById('youtubePlayer');
-const videoTitle = document.getElementById('videoTitle');
-const videoArtist = document.getElementById('videoArtist');
-const closeVideoBtn = document.getElementById('closeVideoBtn');
+songList.innerHTML="";
 
-let currentSong = null;
-let isPlaying = false;
-let retryTimeout = null;
-let useVideoFallback = false;
+list.forEach(song=>{
 
-// Initialize
-window.addEventListener('load', () => {
-   searchSongs('Trending Punjabi Bollywood English Songs');
+songList.innerHTML += `
+<div class="glass p-5 rounded-2xl">
+
+<h3 class="text-xl font-bold">
+${song.title}
+</h3>
+
+<p class="text-gray-400 mt-2">
+${song.artist}
+</p>
+
+<button
+class="bg-green-400 text-black px-5 py-2 rounded-xl mt-4"
+>
+▶ Play
+</button>
+
+</div>
+`;
+
 });
 
-// Search button click
-searchButton.addEventListener('click', () => {
-  const query = searchInput.value.trim();
-  if (query) {
-    searchSongs(query);
-  } else {
-    showToast('Please enter a search term');
-  }
-});
-
-// Enter key search
-searchInput.addEventListener('keypress', (e) => {
-  if (e.key === 'Enter') {
-    const query = searchInput.value.trim();
-    if (query) {
-      searchSongs(query);
-    }
-  }
-});
-
-// Play/Pause button
-playPauseBtn.onclick = () => {
-  if (audio.paused && !useVideoFallback) {
-    audio.play();
-    playPauseBtn.textContent = '⏸';
-  } else if (!useVideoFallback) {
-    audio.pause();
-    playPauseBtn.textContent = '▶';
-  }
-};
-
-// Close player button
-closePlayerBtn.onclick = () => {
-  closeMiniPlayer();
-};
-
-// Close video button
-closeVideoBtn.onclick = () => {
-  closeVideoPlayer();
-};
-
-// Expand mini player to full video
-miniPlayerExpand.onclick = () => {
-  if (currentSong) {
-    expandToVideoPlayer(currentSong);
-  }
-};
-
-// Mini cover click to expand
-miniCover.onclick = () => {
-  if (currentSong) {
-    expandToVideoPlayer(currentSong);
-  }
-};
-
-// Audio event handlers
-audio.onplay = () => {
-  isPlaying = true;
-  playPauseBtn.textContent = '⏸';
-};
-
-audio.onpause = () => {
-  isPlaying = false;
-  playPauseBtn.textContent = '▶';
-};
-
-audio.onerror = () => {
-  if (!useVideoFallback && currentSong) {
-    console.log('Audio failed, falling back to video');
-    showToast('Audio stream failed, opening video player...');
-    expandToVideoPlayer(currentSong);
-  }
-};
-
-// Search function
-async function searchSongs(query) {
-  try {
-    songList.classList.add('hidden');
-    loadingState.classList.remove('hidden');
-    emptyState.classList.add('hidden');
-    
-    const res = await fetch(`${API}/search?q=${encodeURIComponent(query)}`);
-    
-    if (res.status === 429) {
-      showToast('Too many requests. Please wait a moment.');
-      loadingState.classList.add('hidden');
-      return;
-    }
-    
-    if (!res.ok) {
-      throw new Error(`HTTP ${res.status}`);
-    }
-    
-    const songs = await res.json();
-    
-    if (!songs || songs.length === 0) {
-      showEmptyState();
-      return;
-    }
-    
-    renderSongs(songs);
-    
-  } catch (err) {
-    console.error('Search error:', err);
-    showToast('Failed to load songs. Please try again.');
-    showEmptyState();
-  } finally {
-    loadingState.classList.add('hidden');
-  }
 }
 
-// Render songs to UI
-function renderSongs(songs) {
-  songList.classList.remove('hidden');
-  emptyState.classList.add('hidden');
-  songList.innerHTML = '';
-  
-  songs.forEach((song, index) => {
-    const card = document.createElement('div');
-    card.className = 'glass-card rounded-xl p-4 cursor-pointer group transition-all duration-300';
-    card.style.opacity = '0';
-    card.style.transform = 'translateY(20px)';
-    
-    card.innerHTML = `
-      <div class="flex items-start gap-4">
-        <img
-          src="${song.thumbnail || 'https://via.placeholder.com/80x80?text=No+Image'}"
-          class="w-20 h-20 rounded-lg object-cover shadow-lg"
-          alt="${escapeHtml(song.title)}"
-          onerror="this.src='https://via.placeholder.com/80x80?text=No+Image'"
-        />
-        <div class="flex-1 min-w-0">
-          <h2 class="font-semibold text-white truncate">${escapeHtml(song.title)}</h2>
-          <p class="text-gray-400 text-sm truncate mt-1">${escapeHtml(song.artist)}</p>
-          <p class="text-gray-500 text-xs mt-2">${song.duration}</p>
-        </div>
-        <button class="play-button px-4 py-2 rounded-lg text-black font-semibold text-sm">
-          Play
-        </button>
-      </div>
-    `;
-    
-    const playButton = card.querySelector('.play-button');
-    playButton.onclick = (e) => {
-      e.stopPropagation();
-      playSong(song);
-    };
-    
-    card.onclick = () => playSong(song);
-    
-    songList.appendChild(card);
-    
-    setTimeout(() => {
-      card.style.transition = 'all 0.3s ease-out';
-      card.style.opacity = '1';
-      card.style.transform = 'translateY(0)';
-    }, index * 50);
-  });
-}
+renderSongs(demoSongs);
 
-// Play song with retry logic
-async function playSongWithRetry(song, retries = 2) {
-  currentSong = song;
-  showToast(`Loading: ${song.title}`);
-  
-  for (let i = 0; i < retries; i++) {
-    try {
-      console.log(`Attempt ${i + 1}/${retries} for ${song.title}`);
-      
-      const res = await fetch(`${API}/stream/${song.videoId}`);
-      
-      if (res.status === 429) {
-        const waitTime = 2000 * (i + 1);
-        showToast(`Rate limited. Retrying in ${waitTime/1000}s... (${i + 1}/${retries})`);
-        await new Promise(resolve => setTimeout(resolve, waitTime));
-        continue;
-      }
-      
-      if (!res.ok) {
-        throw new Error(`HTTP ${res.status}`);
-      }
-      
-      const data = await res.json();
-      
-      if (!data.url) {
-        throw new Error('No stream URL received');
-      }
-      
-      // Success - play the audio
-      useVideoFallback = false;
-      audio.src = data.url;
-      await audio.play();
-      isPlaying = true;
-      
-      // Update mini player
-      updateMiniPlayer(song);
-      
-      showToast(`Now playing: ${song.title}`);
-      return true;
-      
-    } catch (err) {
-      console.error(`Attempt ${i + 1} failed:`, err.message);
-      
-      if (i === retries - 1) {
-        // Last attempt failed, use video fallback
-        showToast('Audio unavailable, opening video player...');
-        expandToVideoPlayer(song);
-        return false;
-      }
-      
-      await new Promise(resolve => setTimeout(resolve, 2000));
-    }
-  }
-  return false;
-}
+searchInput.addEventListener("keyup",(e)=>{
 
-// Expand to full video player
-function expandToVideoPlayer(song) {
-  currentSong = song;
-  useVideoFallback = true;
-  
-  // Close mini player if open
-  closeMiniPlayer();
-  
-  // Show video section with animation
-  videoSection.classList.remove('hidden');
-  videoSection.style.animation = 'none';
-  videoSection.offsetHeight; // Trigger reflow
-  videoSection.classList.add('video-expand');
-  
-  // Set video source
-  const videoUrl = `https://www.youtube.com/embed/${song.videoId}?autoplay=1&enablejsapi=1`;
-  youtubePlayer.src = videoUrl;
-  videoTitle.textContent = song.title;
-  videoArtist.textContent = song.artist;
-  
-  // Stop audio if playing
-  audio.pause();
-  audio.src = '';
-  
-  // Update document title
-  document.title = `${song.title} - YSN MUSIC (Video)`;
-  
-  showToast('Video player opened');
-}
+const value=e.target.value.toLowerCase();
 
-// Close video player
-function closeVideoPlayer() {
-  videoSection.classList.remove('video-expand');
-  videoSection.classList.add('video-collapse');
-  
-  setTimeout(() => {
-    videoSection.classList.add('hidden');
-    videoSection.classList.remove('video-collapse');
-    youtubePlayer.src = '';
-    
-    // If we have a current song and audio is available, try to resume audio
-    if (currentSong && !useVideoFallback) {
-      playSong(currentSong);
-    }
-  }, 500);
-}
+const filtered=demoSongs.filter(song=>
 
-// Update mini player UI
-function updateMiniPlayer(song) {
-  miniPlayer.classList.remove('hidden');
-  miniCover.src = song.thumbnail || 'https://via.placeholder.com/80x80?text=No+Image';
-  miniTitle.textContent = song.title;
-  miniArtist.textContent = song.artist;
-  playPauseBtn.textContent = audio.paused ? '▶' : '⏸';
-  
-  // Media Session API
-  if ('mediaSession' in navigator) {
-    navigator.mediaSession.metadata = new MediaMetadata({
-      title: song.title,
-      artist: song.artist,
-      artwork: [
-        { src: song.thumbnail, sizes: '512x512', type: 'image/jpeg' }
-      ]
-    });
-    
-    navigator.mediaSession.setActionHandler('play', () => audio.play());
-    navigator.mediaSession.setActionHandler('pause', () => audio.pause());
-  }
-}
+song.title.toLowerCase().includes(value) ||
+song.artist.toLowerCase().includes(value)
 
-// Close mini player
-function closeMiniPlayer() {
-  miniPlayer.classList.add('hidden');
-  if (!useVideoFallback) {
-    audio.pause();
-    audio.src = '';
-  }
-  isPlaying = false;
-  document.title = 'YSN MUSIC';
-  if (retryTimeout) clearTimeout(retryTimeout);
-}
+);
 
-// Main play function
-async function playSong(song) {
-  // Clear any existing retry timeout
-  if (retryTimeout) clearTimeout(retryTimeout);
-  
-  // Close video player if open
-  if (!videoSection.classList.contains('hidden')) {
-    closeVideoPlayer();
-  }
-  
-  // Try with retry logic
-  await playSongWithRetry(song, 2);
-}
+renderSongs(filtered);
 
-// Helper functions
-function showEmptyState() {
-  songList.classList.add('hidden');
-  loadingState.classList.add('hidden');
-  emptyState.classList.remove('hidden');
-  songList.innerHTML = '';
-}
-
-function showToast(message) {
-  const toast = document.createElement('div');
-  toast.className = 'fixed top-20 left-1/2 transform -translate-x-1/2 bg-gray-900/95 text-white px-6 py-3 rounded-xl z-[1000] text-sm font-medium shadow-lg border border-green-400/30';
-  toast.textContent = message;
-  document.body.appendChild(toast);
-  
-  setTimeout(() => {
-    toast.style.opacity = '0';
-    setTimeout(() => toast.remove(), 300);
-  }, 3000);
-}
-
-function escapeHtml(str) {
-  if (!str) return '';
-  const div = document.createElement('div');
-  div.textContent = str;
-  return div.innerHTML;
-}
-
-// Service Worker
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('sw.js').catch(console.log);
-}
-
-// Keyboard shortcuts
-document.addEventListener('keydown', (e) => {
-  // Space bar for play/pause
-  if (e.code === 'Space' && !e.target.matches('input, textarea')) {
-    e.preventDefault();
-    if (!useVideoFallback && currentSong) {
-      if (audio.paused) {
-        audio.play();
-      } else {
-        audio.pause();
-      }
-    }
-  }
-  
-  // Escape key to close video
-  if (e.code === 'Escape' && !videoSection.classList.contains('hidden')) {
-    closeVideoPlayer();
-  }
 });
