@@ -125,6 +125,9 @@ searchInput.addEventListener("input", () => {
 });
 const themeBtn =
 document.getElementById("themeBtn");
+console.log(
+document.getElementById("themeBtn")
+);
 const themes = [
 "#050505",
 "#220033",
