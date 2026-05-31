@@ -16,16 +16,38 @@ function renderSongs(list) {
 
   list.forEach(song => {
 
-    songList.innerHTML += `
-      <div class="glass p-5 rounded-2xl">
-        <h3 class="text-xl font-bold">${song.title}</h3>
-        <p class="text-gray-400 mt-2">${song.artist}</p>
+  songList.innerHTML += `
+<div class="glass p-5 rounded-3xl hover:scale-105 transition-all duration-300">
 
-        <button class="bg-green-400 text-black px-4 py-2 rounded-xl mt-4">
-          ▶ Play
-        </button>
-      </div>
-    `;
+  <img
+  src="https://picsum.photos/400?random=${Math.floor(Math.random()*1000)}"
+  class="w-full h-56 object-cover rounded-2xl mb-4"
+  >
+
+  <h3 class="text-xl font-bold">
+    ${song.title}
+  </h3>
+
+  <p class="text-gray-400 mt-1">
+    ${song.artist}
+  </p>
+
+  <div class="flex gap-3 mt-5">
+
+    <button
+    class="bg-green-400 text-black px-5 py-2 rounded-xl font-bold">
+      ▶ Play
+    </button>
+
+    <button
+    class="glass px-4 py-2 rounded-xl">
+      ❤️
+    </button>
+
+  </div>
+
+</div>
+`;
 
   });
 
