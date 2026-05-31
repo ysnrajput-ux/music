@@ -58,19 +58,22 @@ class="bg-green-400 text-black px-5 py-2 rounded-xl mt-4"
 
 }
 
-renderSongs(demoSongs);
+renderSongs([]);
+songList.style.display = "none";
+searchInput.addEventListener("keyup", (e) => {
 
-searchInput.addEventListener("keyup",(e)=>{
+    const value = e.target.value.toLowerCase().trim();
 
-const value=e.target.value.toLowerCase();
+    if (value === "") {
+        renderSongs([]);
+        return;
+    }
 
-const filtered=demoSongs.filter(song=>
+    const filtered = demoSongs.filter(song =>
+        song.title.toLowerCase().includes(value) ||
+        song.artist.toLowerCase().includes(value)
+    );
 
-song.title.toLowerCase().includes(value) ||
-song.artist.toLowerCase().includes(value)
-
-);
-
-renderSongs(filtered);
+    renderSongs(filtered);
 
 });
