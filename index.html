@@ -1,415 +1,495 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-  <title>YSN MUSIC</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#00ff99">
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    body {
-      background: #050505;
-      color: white;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-      overflow-x: hidden;
-    }
+<title>YSN MUSIC</title>
 
-    .glass {
-      background: rgba(255, 255, 255, 0.06);
-      backdrop-filter: blur(20px);
-      border: 1px solid rgba(255, 255, 255, 0.05);
-    }
+<script src="https://cdn.tailwindcss.com"></script>
 
-    .glass-card {
-      background: rgba(255, 255, 255, 0.04);
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(255, 255, 255, 0.05);
-      transition: all 0.3s ease;
-    }
+<link rel="manifest" href="manifest.json">
 
-    .glass-card:hover {
-      background: rgba(255, 255, 255, 0.08);
-      transform: translateY(-2px);
-      border-color: rgba(0, 255, 153, 0.3);
-    }
+<meta name="theme-color" content="#00ff99">
 
-    .sidebar {
-      background: rgba(10, 10, 10, 0.95);
-      backdrop-filter: blur(20px);
-      border-right: 1px solid rgba(255, 255, 255, 0.05);
-    }
+<style>
 
-    .bottom-nav {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      width: 100%;
-      height: 70px;
-      display: flex;
-      justify-content: space-around;
-      align-items: center;
-      background: rgba(17, 17, 17, 0.95);
-      backdrop-filter: blur(20px);
-      z-index: 999;
-      border-top: 1px solid rgba(255, 255, 255, 0.05);
-    }
+body{
+background:#050505;
+color:white;
+font-family:Arial,sans-serif;
+margin:0;
+padding:0;
+overflow-x:hidden;
+}
 
-    .nav-item {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 4px;
-      font-size: 12px;
-      color: #888;
-      transition: color 0.2s;
-      background: none;
-      border: none;
-      cursor: pointer;
-    }
+.glass{
+background:rgba(255,255,255,0.05);
+backdrop-filter:blur(20px);
+border:1px solid rgba(255,255,255,0.08);
+}
 
-    .nav-item.active {
-      color: #00ff99;
-    }
+</style>
 
-    .nav-icon {
-      font-size: 22px;
-      font-weight: 500;
-    }
-
-    ::-webkit-scrollbar {
-      width: 8px;
-    }
-
-    ::-webkit-scrollbar-track {
-      background: rgba(255, 255, 255, 0.05);
-      border-radius: 10px;
-    }
-
-    ::-webkit-scrollbar-thumb {
-      background: rgba(0, 255, 153, 0.3);
-      border-radius: 10px;
-    }
-
-    ::-webkit-scrollbar-thumb:hover {
-      background: rgba(0, 255, 153, 0.5);
-    }
-
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.5; }
-    }
-
-    @keyframes slideIn {
-      from {
-        opacity: 0;
-        transform: translateY(100%);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-
-    @keyframes slideOut {
-      from {
-        opacity: 1;
-        transform: translateY(0);
-      }
-      to {
-        opacity: 0;
-        transform: translateY(100%);
-      }
-    }
-
-    @keyframes expandVideo {
-      from {
-        width: 0px;
-        height: 0px;
-        opacity: 0;
-      }
-      to {
-        width: 100%;
-        height: auto;
-        opacity: 1;
-      }
-    }
-
-    @keyframes collapseVideo {
-      from {
-        width: 100%;
-        height: auto;
-        opacity: 1;
-      }
-      to {
-        width: 0px;
-        height: 0px;
-        opacity: 0;
-      }
-    }
-
-    .loading {
-      animation: pulse 1.5s ease-in-out infinite;
-    }
-
-    .video-expand {
-      animation: expandVideo 0.5s ease-out forwards;
-    }
-
-    .video-collapse {
-      animation: collapseVideo 0.5s ease-out forwards;
-    }
-
-    .mini-player-slide {
-      animation: slideIn 0.3s ease-out;
-    }
-
-    @media (min-width: 768px) {
-      .main-content {
-        margin-left: 280px;
-      }
-      
-      .sidebar {
-        position: fixed;
-        left: 0;
-        top: 0;
-        width: 280px;
-        height: 100vh;
-        display: flex;
-        flex-direction: column;
-      }
-      
-      .bottom-nav {
-        display: none;
-      }
-      
-      .desktop-player {
-        position: fixed;
-        bottom: 20px;
-        right: 20px;
-        width: 400px;
-      }
-    }
-
-    @media (max-width: 767px) {
-      .sidebar {
-        display: none;
-      }
-      
-      .desktop-player {
-        position: fixed;
-        bottom: 80px;
-        left: 12px;
-        right: 12px;
-      }
-    }
-
-    .search-button {
-      background: linear-gradient(135deg, #00ff99 0%, #00cc7a 100%);
-      transition: transform 0.2s, box-shadow 0.2s;
-    }
-
-    .search-button:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 4px 15px rgba(0, 255, 153, 0.3);
-    }
-
-    .play-button {
-      background: linear-gradient(135deg, #00ff99 0%, #00cc7a 100%);
-      transition: transform 0.2s;
-    }
-
-    .play-button:hover {
-      transform: scale(1.05);
-    }
-
-    input:focus {
-      outline: none;
-      border-color: #00ff99;
-    }
-
-    .song-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-      gap: 16px;
-    }
-
-    @media (min-width: 1024px) {
-      .song-grid {
-        grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-      }
-    }
-
-    .video-container {
-      max-width: 800px;
-      margin: 0 auto;
-      overflow: hidden;
-    }
-
-    iframe {
-      width: 100%;
-      height: 450px;
-      border-radius: 16px;
-    }
-
-    @media (max-width: 768px) {
-      iframe {
-        height: 250px;
-      }
-    }
-
-    .expand-icon {
-      transition: transform 0.3s ease;
-    }
-
-    .expand-icon:hover {
-      transform: scale(1.1);
-    }
-  </style>
 </head>
+
 <body>
+  <!-- SIDEBAR + MAIN -->
 
-<div class="flex">
-  <!-- Sidebar for PC -->
-  <div class="sidebar p-6">
-    <div class="mb-8">
-      <h1 class="text-3xl font-bold text-green-400 mb-2">YSN MUSIC</h1>
-      <p class="text-gray-400 text-sm">Discover and stream music</p>
+<div class="flex min-h-screen">
+
+  <!-- SIDEBAR -->
+
+  <aside class="hidden md:flex flex-col w-72 p-6 glass">
+
+    <h1 class="text-4xl font-bold text-green-400">
+      YSN MUSIC
+    </h1>
+
+    <p class="text-gray-400 mt-2">
+      Feel Every Beat.
+    </p>
+
+    <div class="mt-10 space-y-3">
+
+      <button class="w-full text-left p-4 rounded-xl glass">
+        🏠 Home
+      </button>
+
+      <button class="w-full text-left p-4 rounded-xl glass">
+        🔥 Trending
+      </button>
+
+      <button class="w-full text-left p-4 rounded-xl glass">
+        ❤️ Favorites
+      </button>
+
+      <button class="w-full text-left p-4 rounded-xl glass">
+        🎵 Playlists
+      </button>
+
+      <button class="w-full text-left p-4 rounded-xl glass">
+        ⚙ Settings
+      </button>
+
     </div>
-    
-    <div class="space-y-4">
-      <button class="nav-item active w-full text-left flex flex-row gap-3 items-center px-4 py-3 rounded-xl hover:bg-white/5 transition">
-        <span class="nav-icon">♪</span>
-        <span>Discover</span>
-      </button>
-      <button class="nav-item w-full text-left flex flex-row gap-3 items-center px-4 py-3 rounded-xl hover:bg-white/5 transition">
-        <span class="nav-icon">♫</span>
-        <span>Library</span>
-      </button>
-      <button class="nav-item w-full text-left flex flex-row gap-3 items-center px-4 py-3 rounded-xl hover:bg-white/5 transition">
-        <span class="nav-icon">↓</span>
-        <span>Downloads</span>
-      </button>
+
+  </aside>
+
+  <!-- MAIN CONTENT -->
+
+  <main class="flex-1 p-5">
+
+    <!-- TOP BAR -->
+
+    <div class="glass rounded-2xl p-4 mb-6">
+
+      <input
+      id="searchInput"
+      type="text"
+      placeholder="Search songs, artists, albums..."
+      class="w-full bg-transparent outline-none text-white text-lg"
+      />
+
     </div>
+    <!-- HERO SECTION -->
+
+<section class="glass rounded-3xl p-8 md:p-12 mb-8 overflow-hidden">
+
+  <div class="max-w-3xl">
+
+    <span
+      class="inline-block px-4 py-2 rounded-full bg-green-500/20 text-green-400"
+    >
+      Premium Sound Experience
+    </span>
+
+    <h2 class="text-5xl md:text-7xl font-black mt-6">
+      YSN MUSIC
+    </h2>
+
+    <p class="text-gray-300 text-lg mt-4 leading-relaxed">
+      Feel Every Beat.
+      Discover trending songs, artists and playlists
+      with a premium futuristic music experience.
+    </p>
+
+    <div class="flex flex-wrap gap-4 mt-8">
+
+      <button
+        class="bg-green-400 text-black font-bold px-8 py-4 rounded-2xl"
+      >
+        ▶ Start Listening
+      </button>
+
+      <button
+        class="glass px-8 py-4 rounded-2xl"
+      >
+        Explore Music
+      </button>
+
+    </div>
+
   </div>
 
-  <!-- Main Content -->
-  <div class="main-content flex-1 min-h-screen">
-    <header class="glass p-6 sticky top-0 z-50">
-      <h1 class="text-3xl font-bold text-green-400 md:hidden">YSN MUSIC</h1>
-      <p class="text-gray-400 mt-1 hidden md:block">Discover the best music from around the world</p>
-    </header>
+</section>
 
-    <div class="p-6">
-      <!-- Search Section -->
-      <div class="flex gap-3 mb-8">
-        <input
-          id="searchInput"
-          placeholder="Search songs, artists, or albums..."
-          class="flex-1 p-4 rounded-xl glass outline-none text-white placeholder-gray-400"
-          autocomplete="off"
-        />
-        <button
-          id="searchButton"
-          class="search-button px-8 rounded-xl font-semibold text-black transition"
-        >
-          Search
-        </button>
-      </div>
 
-      <!-- Video Player Section -->
-      <div id="videoSection" class="hidden mb-8">
-        <div class="video-container relative">
-          <div class="glass-card p-4 rounded-2xl">
-            <div class="flex justify-between items-center mb-4">
-              <h3 class="text-lg font-semibold text-green-400">Now Playing</h3>
-              <button id="closeVideoBtn" class="text-gray-400 hover:text-white transition text-2xl">
-                ✕
-              </button>
-            </div>
-            <div class="relative">
-              <iframe
-                id="youtubePlayer"
-                src=""
-                frameborder="0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowfullscreen
-              ></iframe>
-            </div>
-            <div class="mt-4">
-              <h4 id="videoTitle" class="font-semibold text-white">Song Title</h4>
-              <p id="videoArtist" class="text-gray-400 text-sm">Artist</p>
-            </div>
-          </div>
-        </div>
-      </div>
 
-      <!-- Results Section -->
-      <div id="songList" class="song-grid pb-32"></div>
-      
-      <!-- Loading State -->
-      <div id="loadingState" class="hidden text-center py-20">
-        <div class="inline-block w-12 h-12 border-4 border-green-400 border-t-transparent rounded-full loading"></div>
-        <p class="text-gray-400 mt-4">Loading songs...</p>
-      </div>
-      
-      <!-- Empty State -->
-      <div id="emptyState" class="hidden text-center py-20">
-        <p class="text-gray-400 text-lg">No songs found</p>
-        <p class="text-gray-500 text-sm mt-2">Try searching for something else</p>
-      </div>
-    </div>
-  </div>
-</div>
+<!-- QUICK STATS -->
 
-<!-- Mini Player (Mobile) -->
-<div
-  id="miniPlayer"
-  class="hidden desktop-player glass-card p-4 rounded-xl items-center gap-3 z-50 shadow-2xl mini-player-slide"
+<section
+class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8"
 >
-  <img
-    id="miniCover"
-    class="w-14 h-14 rounded-lg object-cover cursor-pointer"
-    alt="Album art"
-  />
-  <div class="flex-1 overflow-hidden cursor-pointer" id="miniPlayerExpand">
-    <h2 id="miniTitle" class="font-semibold truncate text-white">Title</h2>
-    <p id="miniArtist" class="text-gray-400 text-sm truncate">Artist</p>
+
+  <div class="glass p-5 rounded-2xl">
+    <h3 class="text-3xl font-bold text-green-400">
+      10M+
+    </h3>
+    <p class="text-gray-400">
+      Songs
+    </p>
   </div>
-  <div class="flex gap-2">
-    <button id="playPauseBtn" class="play-button w-10 h-10 rounded-full text-black font-bold flex items-center justify-center">
-      ▶
-    </button>
-    <button id="closePlayerBtn" class="w-10 h-10 rounded-full bg-white/10 text-white hover:bg-white/20 transition">
-      ✕
-    </button>
+
+  <div class="glass p-5 rounded-2xl">
+    <h3 class="text-3xl font-bold text-green-400">
+      500K+
+    </h3>
+    <p class="text-gray-400">
+      Artists
+    </p>
   </div>
+
+  <div class="glass p-5 rounded-2xl">
+    <h3 class="text-3xl font-bold text-green-400">
+      120+
+    </h3>
+    <p class="text-gray-400">
+      Genres
+    </p>
+  </div>
+
+  <div class="glass p-5 rounded-2xl">
+    <h3 class="text-3xl font-bold text-green-400">
+      4K
+    </h3>
+    <p class="text-gray-400">
+      Audio Quality
+    </p>
+  </div>
+
+</section>
+<!-- TRENDING NOW -->
+
+<section class="mb-10">
+
+  <div class="flex justify-between items-center mb-5">
+
+    <h2 class="text-3xl font-bold">
+      🔥 Trending Now
+    </h2>
+
+    <button class="text-green-400">
+      View All
+    </button>
+
+  </div>
+
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+
+    <div class="glass p-4 rounded-2xl cursor-pointer">
+
+      <img
+      src="https://picsum.photos/300?1"
+      class="rounded-xl w-full mb-3"
+      >
+
+      <h3 class="font-semibold">
+        Global Hits
+      </h3>
+
+      <p class="text-gray-400 text-sm">
+        Top Trending
+      </p>
+
+    </div>
+
+    <div class="glass p-4 rounded-2xl cursor-pointer">
+
+      <img
+      src="https://picsum.photos/300?2"
+      class="rounded-xl w-full mb-3"
+      >
+
+      <h3 class="font-semibold">
+        Punjabi Vibes
+      </h3>
+
+      <p class="text-gray-400 text-sm">
+        Most Played
+      </p>
+
+    </div>
+
+    <div class="glass p-4 rounded-2xl cursor-pointer">
+
+      <img
+      src="https://picsum.photos/300?3"
+      class="rounded-xl w-full mb-3"
+      >
+
+      <h3 class="font-semibold">
+        Bollywood Mix
+      </h3>
+
+      <p class="text-gray-400 text-sm">
+        Fresh Releases
+      </p>
+
+    </div>
+
+    <div class="glass p-4 rounded-2xl cursor-pointer">
+
+      <img
+      src="https://picsum.photos/300?4"
+      class="rounded-xl w-full mb-3"
+      >
+
+      <h3 class="font-semibold">
+        English Top 50
+      </h3>
+
+      <p class="text-gray-400 text-sm">
+        Worldwide
+      </p>
+
+    </div>
+
+  </div>
+
+</section>
+<!-- RECOMMENDED -->
+
+<section class="mb-10">
+
+  <div class="flex justify-between items-center mb-5">
+
+    <h2 class="text-3xl font-bold">
+      ✨ Recommended For You
+    </h2>
+
+    <button class="text-green-400">
+      Refresh
+    </button>
+
+  </div>
+
+  <div class="grid md:grid-cols-3 gap-4">
+
+    <div class="glass p-6 rounded-2xl">
+      <h3 class="font-bold text-xl">
+        🎧 Daily Mix
+      </h3>
+
+      <p class="text-gray-400 mt-2">
+        Based on your listening habits.
+      </p>
+    </div>
+
+    <div class="glass p-6 rounded-2xl">
+      <h3 class="font-bold text-xl">
+        🔥 Hot Right Now
+      </h3>
+
+      <p class="text-gray-400 mt-2">
+        Trending around the world.
+      </p>
+    </div>
+
+    <div class="glass p-6 rounded-2xl">
+      <h3 class="font-bold text-xl">
+        💎 Premium Picks
+      </h3>
+
+      <p class="text-gray-400 mt-2">
+        Curated for YSN listeners.
+      </p>
+    </div>
+
+  </div>
+
+</section>
+<!-- SONG RESULTS TITLE -->
+
+<div class="flex justify-between items-center mb-4">
+
+  <h2 class="text-3xl font-bold">
+    🎵 Search Results
+  </h2>
+
+  <span class="text-gray-400">
+    Live Music Search
+  </span>
+
+</div>
+<!-- SONG RESULTS -->
+
+<div
+id="songList"
+class="grid md:grid-cols-2 lg:grid-cols-3 gap-4 pb-40"
+>
 </div>
 
-<!-- Bottom Navigation (Mobile) -->
-<nav class="bottom-nav md:hidden">
-  <button class="nav-item active">
-    <span class="nav-icon">♪</span>
-    <span>Home</span>
-  </button>
-  <button class="nav-item">
-    <span class="nav-icon">♫</span>
-    <span>Songs</span>
-  </button>
-  <button class="nav-item">
-    <span class="nav-icon">↓</span>
-    <span>Library</span>
-  </button>
+
+<!-- LOADING -->
+
+<div
+id="loadingState"
+class="hidden text-center py-20"
+>
+
+<div
+class="w-16 h-16 border-4 border-green-400 border-t-transparent rounded-full mx-auto animate-spin"
+>
+</div>
+
+<p class="text-gray-400 mt-4">
+Loading songs...
+</p>
+
+</div>
+
+
+<!-- EMPTY STATE -->
+
+<div
+id="emptyState"
+class="hidden text-center py-20"
+>
+
+<h2 class="text-3xl font-bold">
+😕 No Songs Found
+</h2>
+
+<p class="text-gray-400 mt-4">
+Try another search keyword.
+</p>
+
+</div>
+
+</main>
+
+</div>
+  <!-- MINI PLAYER -->
+
+<div
+id="miniPlayer"
+class="hidden fixed bottom-24 left-4 right-4 glass p-4 rounded-2xl z-50 flex items-center gap-4"
+>
+
+<img
+id="miniCover"
+src=""
+class="w-16 h-16 rounded-xl object-cover"
+/>
+
+<div
+id="miniPlayerExpand"
+class="flex-1 cursor-pointer"
+>
+
+<h3
+id="miniTitle"
+class="font-bold truncate"
+>
+Song Title
+</h3>
+
+<p
+id="miniArtist"
+class="text-gray-400 text-sm truncate"
+>
+Artist
+</p>
+
+</div>
+
+<button
+id="playPauseBtn"
+class="bg-green-400 text-black w-12 h-12 rounded-full font-bold"
+>
+▶
+</button>
+
+<button
+id="closePlayerBtn"
+class="w-12 h-12 rounded-full glass"
+>
+✕
+</button>
+
+</div>
+  <audio
+id="audio"
+preload="metadata"
+>
+</audio>
+  <!-- MOBILE NAVIGATION -->
+
+<nav
+class="fixed bottom-0 left-0 right-0 h-20 glass flex md:hidden items-center justify-around z-50"
+>
+
+<button class="flex flex-col items-center">
+
+<span class="text-2xl">
+🏠
+</span>
+
+<span class="text-xs">
+Home
+</span>
+
+</button>
+
+<button class="flex flex-col items-center">
+
+<span class="text-2xl">
+🔥
+</span>
+
+<span class="text-xs">
+Trending
+</span>
+
+</button>
+
+<button class="flex flex-col items-center">
+
+<span class="text-2xl">
+❤️
+</span>
+
+<span class="text-xs">
+Favorites
+</span>
+
+</button>
+
+<button class="flex flex-col items-center">
+
+<span class="text-2xl">
+🎵
+</span>
+
+<span class="text-xs">
+Library
+</span>
+
+</button>
+
 </nav>
+  <script src="app.js"></script>
 
-<audio id="audio" preload="metadata"></audio>
-
-<script src="app.js"></script>
 </body>
 </html>
