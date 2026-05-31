@@ -113,7 +113,7 @@ btn.innerHTML = "💚";
 }
 
 renderSongs([]);
-
+updateFavoriteCount();
 searchInput.addEventListener("input", () => {
 
   const value = searchInput.value.toLowerCase().trim();
