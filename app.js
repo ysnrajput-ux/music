@@ -76,3 +76,4 @@ searchInput.addEventListener("input", () => {
   renderSongs(results);
 
 });
+console.log("APP LOADED");
