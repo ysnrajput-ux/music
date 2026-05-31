@@ -153,3 +153,47 @@ document.body.style.background =
 themes[currentTheme];
 
 };
+const homeBtn =
+document.getElementById("homeBtn");
+
+const trendingBtn =
+document.getElementById("trendingBtn");
+
+const favoritesBtn =
+document.getElementById("favoritesBtn");
+
+if(homeBtn){
+
+homeBtn.onclick = () => {
+
+window.scrollTo({
+top:0,
+behavior:"smooth"
+});
+
+};
+
+}
+
+if(trendingBtn){
+
+trendingBtn.onclick = () => {
+
+alert("Trending Section");
+
+};
+
+}
+
+if(favoritesBtn){
+
+favoritesBtn.onclick = () => {
+
+alert(
+"Favorites Saved: " +
+favorites.length
+);
+
+};
+
+}
