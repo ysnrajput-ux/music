@@ -82,7 +82,20 @@ class="glass px-4 py-2 rounded-xl fav-btn">
 `;
 
   });
+const favBtns =
+document.querySelectorAll(".fav-btn");
 
+favBtns.forEach((btn,index)=>{
+
+btn.onclick = ()=>{
+
+toggleFavorite(list[index]);
+
+btn.innerHTML = "💚";
+
+};
+
+});
 }
 
 renderSongs([]);
