@@ -3,36 +3,191 @@ const cors = require('cors');
 const yts = require('yt-search');
 const ytdl = require('ytdl-core');
 const { YTDlpWrap } = require('yt-dlp-wrap');
-const { PassThrough } = require('stream');
+const rateLimit = require('express-rate-limit');
+const NodeCache = require('node-cache');
 
 const app = express();
-const ytDlpWrap = new YTDlpWrap();
 
-// Cache for stream URLs to reduce requests
-const streamCache = new Map();
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+// Cache setup with longer TTL for 429 responses
+const streamCache = new NodeCache({ stdTTL: 3600, checkperiod: 120 }); // 1 hour cache
+const failedCache = new NodeCache({ stdTTL: 300 }); // Cache failed IDs for 5 minutes
+
+// Rate limiter for search endpoints
+const searchLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 30, // 30 requests per minute
+  message: { error: 'Too many search requests. Please wait a moment.' }
+});
+
+// Rate limiter for stream endpoints
+const streamLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 20, // 20 requests per minute
+  message: { error: 'Too many stream requests. Please wait a moment.' }
+});
 
 app.use(cors());
+app.use(express.json());
 
-// Cleanup expired cache entries periodically
-setInterval(() => {
-  const now = Date.now();
-  for (const [key, value] of streamCache.entries()) {
-    if (now - value.timestamp > CACHE_DURATION) {
-      streamCache.delete(key);
+// Helper function to add delay
+const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+// Method 1: Try ytdl-core with retries and better headers
+async function getStreamWithYtdl(videoId, retryCount = 0) {
+  try {
+    const url = `https://www.youtube.com/watch?v=${videoId}`;
+    
+    // Random user agent to avoid detection
+    const userAgents = [
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+    ];
+    
+    const randomUA = userAgents[Math.floor(Math.random() * userAgents.length)];
+    
+    const info = await ytdl.getInfo(url, {
+      requestOptions: {
+        headers: {
+          'User-Agent': randomUA,
+          'Accept-Language': 'en-US,en;q=0.9',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+          'Accept-Encoding': 'gzip, deflate, br',
+          'Connection': 'keep-alive',
+          'Upgrade-Insecure-Requests': '1'
+        }
+      }
+    });
+    
+    // Find best audio format
+    let audioFormat = info.formats.find(format => 
+      format.hasAudio && !format.hasVideo && format.audioBitrate
+    );
+    
+    if (!audioFormat) {
+      audioFormat = info.formats.find(format => 
+        format.hasAudio && format.audioBitrate
+      );
     }
+    
+    if (!audioFormat) {
+      audioFormat = info.formats.find(format => format.hasAudio);
+    }
+    
+    if (!audioFormat || !audioFormat.url) {
+      throw new Error('No audio stream found');
+    }
+    
+    return { url: audioFormat.url, method: 'ytdl-core' };
+    
+  } catch (err) {
+    // Handle 429 specifically
+    if (err.statusCode === 429 || err.message.includes('429')) {
+      console.log(`Rate limit hit for ${videoId}, attempt ${retryCount + 1}`);
+      if (retryCount < 3) {
+        const waitTime = (retryCount + 1) * 2000; // 2, 4, 6 seconds
+        await delay(waitTime);
+        return getStreamWithYtdl(videoId, retryCount + 1);
+      }
+    }
+    throw err;
   }
-}, 60000); // Clean every minute
+}
 
-// Search endpoint
-app.get('/search', async (req, res) => {
+// Method 2: Using yt-dlp with proxy support
+async function getStreamWithYtDlp(videoId, retryCount = 0) {
+  try {
+    const ytDlpWrap = new YTDlpWrap();
+    const url = `https://www.youtube.com/watch?v=${videoId}`;
+    
+    const info = await ytDlpWrap.getVideoInfo(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      }
+    });
+    
+    // Find best audio-only format
+    let audioFormat = info.formats.find(format => 
+      (format.acodec !== 'none' || format.audio_channels) && 
+      format.vcodec === 'none'
+    );
+    
+    if (!audioFormat) {
+      audioFormat = info.formats.find(format => 
+        format.acodec !== 'none' || format.audio_channels
+      );
+    }
+    
+    if (!audioFormat || !audioFormat.url) {
+      throw new Error('No audio format found');
+    }
+    
+    return { url: audioFormat.url, method: 'yt-dlp' };
+    
+  } catch (err) {
+    if (err.message.includes('429') || err.message.includes('rate limit')) {
+      console.log(`yt-dlp rate limit for ${videoId}`);
+      if (retryCount < 2) {
+        await delay(3000);
+        return getStreamWithYtDlp(videoId, retryCount + 1);
+      }
+    }
+    throw err;
+  }
+}
+
+// Method 3: Get direct audio stream as proxy (best for avoiding rate limits)
+async function getDirectAudioStream(videoId, res) {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const { YTDlpWrap } = require('yt-dlp-wrap');
+      const ytDlpWrap = new YTDlpWrap();
+      const url = `https://www.youtube.com/watch?v=${videoId}`;
+      
+      // Set headers for audio streaming
+      res.setHeader('Content-Type', 'audio/mpeg');
+      res.setHeader('Accept-Ranges', 'bytes');
+      res.setHeader('Cache-Control', 'public, max-age=300');
+      
+      // Create stream with better quality
+      const ytDlpProcess = ytDlpWrap.execStream([
+        url,
+        '-f', 'bestaudio[ext=webm]/bestaudio',
+        '--extract-audio',
+        '--audio-format', 'mp3',
+        '--audio-quality', '2',
+        '--no-playlist',
+        '--no-check-certificate',
+        '--add-header', 'User-Agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        '-o', '-'
+      ]);
+      
+      ytDlpProcess.stdout.pipe(res);
+      
+      ytDlpProcess.on('error', (err) => {
+        console.error('Stream error:', err);
+        reject(err);
+      });
+      
+      ytDlpProcess.on('close', () => {
+        resolve(true);
+      });
+      
+    } catch (err) {
+      reject(err);
+    }
+  });
+}
+
+// Search endpoint with rate limiting
+app.get('/search', searchLimiter, async (req, res) => {
   try {
     const q = req.query.q;
     
     if (!q || q.trim().length === 0) {
       return res.status(400).json({ error: 'Search query is required' });
     }
-
+    
     console.log(`Searching for: ${q}`);
     
     const result = await yts(q);
@@ -40,7 +195,7 @@ app.get('/search', async (req, res) => {
     if (!result || !result.videos || result.videos.length === 0) {
       return res.status(404).json({ error: 'No videos found' });
     }
-
+    
     const songs = result.videos.slice(0, 20).map(v => ({
       title: v.title || 'Unknown Title',
       artist: v.author?.name || 'Unknown Artist',
@@ -50,7 +205,7 @@ app.get('/search', async (req, res) => {
       durationSeconds: v.duration || 0,
       url: v.url
     }));
-
+    
     res.json(songs);
     
   } catch (err) {
@@ -62,221 +217,107 @@ app.get('/search', async (req, res) => {
   }
 });
 
-// Method 1: Try ytdl-core first
-async function getStreamWithYtdl(videoId) {
-  try {
-    const url = `https://www.youtube.com/watch?v=${videoId}`;
-    const info = await ytdl.getInfo(url, {
-      requestOptions: {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          'Accept-Language': 'en-US,en;q=0.9',
-        }
-      }
-    });
-    
-    // Try to find audio-only formats first
-    let audioFormat = info.formats.find(format => 
-      format.hasAudio && !format.hasVideo && format.audioBitrate
-    );
-    
-    // If no audio-only format, find best audio quality format
-    if (!audioFormat) {
-      audioFormat = info.formats.find(format => 
-        format.hasAudio && format.audioBitrate
-      );
-    }
-    
-    // Fallback to any format with audio
-    if (!audioFormat) {
-      audioFormat = info.formats.find(format => format.hasAudio);
-    }
-    
-    if (!audioFormat || !audioFormat.url) {
-      throw new Error('No audio stream found');
-    }
-    
-    return audioFormat.url;
-  } catch (err) {
-    console.log('ytdl-core failed:', err.message);
-    throw err;
-  }
-}
-
-// Method 2: Try yt-dlp as fallback
-async function getStreamWithYtDlp(videoId) {
-  try {
-    const url = `https://www.youtube.com/watch?v=${videoId}`;
-    
-    // Get video info using yt-dlp
-    const info = await ytDlpWrap.getVideoInfo(url);
-    
-    // Find best audio format
-    const audioFormat = info.formats.find(format => 
-      (format.acodec !== 'none' || format.audio_channels) && 
-      format.vcodec === 'none'
-    );
-    
-    if (!audioFormat || !audioFormat.url) {
-      // Try to get any format with audio
-      const anyAudioFormat = info.formats.find(format => 
-        format.acodec !== 'none' || format.audio_channels
-      );
-      
-      if (anyAudioFormat && anyAudioFormat.url) {
-        return anyAudioFormat.url;
-      }
-      throw new Error('No audio stream found with yt-dlp');
-    }
-    
-    return audioFormat.url;
-  } catch (err) {
-    console.log('yt-dlp failed:', err.message);
-    throw err;
-  }
-}
-
-// Method 3: Direct stream using yt-dlp as a proxy
-async function getStreamAsProxy(videoId, res) {
-  try {
-    const url = `https://www.youtube.com/watch?v=${videoId}`;
-    
-    // Set appropriate headers for audio streaming
-    res.setHeader('Content-Type', 'audio/mpeg');
-    res.setHeader('Accept-Ranges', 'bytes');
-    
-    // Create a stream using yt-dlp
-    const stream = new PassThrough();
-    
-    // Execute yt-dlp to get audio stream
-    const ytDlpProcess = ytDlpWrap.execStream([
-      url,
-      '-f', 'bestaudio',
-      '--extract-audio',
-      '--audio-format', 'mp3',
-      '--audio-quality', '2',
-      '-o', '-'
-    ]);
-    
-    // Pipe the output to response
-    ytDlpProcess.stdout.pipe(res);
-    
-    // Handle errors
-    ytDlpProcess.on('error', (err) => {
-      console.error('yt-dlp stream error:', err);
-      if (!res.headersSent) {
-        res.status(500).json({ error: 'Stream failed' });
-      }
-    });
-    
-    return true; // Indicates we're streaming directly
-  } catch (err) {
-    throw err;
-  }
-}
-
-// Stream endpoint with multiple fallback methods
-app.get('/stream/:id', async (req, res) => {
+// Stream endpoint with rate limiting and multiple fallbacks
+app.get('/stream/:id', streamLimiter, async (req, res) => {
   const videoId = req.params.id;
   
   if (!videoId || videoId.length < 5) {
     return res.status(400).json({ error: 'Invalid video ID' });
   }
   
+  // Check if this video is temporarily blocked
+  const failed = failedCache.get(videoId);
+  if (failed) {
+    return res.status(429).json({ 
+      error: 'This video is temporarily unavailable. Please try again in a few minutes.',
+      retryAfter: failed.retryAfter 
+    });
+  }
+  
+  // Check cache first
+  const cached = streamCache.get(videoId);
+  if (cached) {
+    console.log(`Serving cached stream for: ${videoId}`);
+    return res.json({ 
+      url: cached.url, 
+      source: cached.method,
+      cached: true 
+    });
+  }
+  
+  console.log(`Attempting to get stream for: ${videoId}`);
+  
+  // Try direct streaming first (avoids URL expiration)
   try {
-    // Check cache first
-    const cached = streamCache.get(videoId);
-    if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
-      console.log(`Serving cached stream for: ${videoId}`);
-      return res.json({ url: cached.url, source: 'cache' });
-    }
-    
-    console.log(`Attempting to get stream for: ${videoId}`);
-    
-    let streamUrl = null;
-    let method = null;
-    
-    // Try ytdl-core first
-    try {
-      streamUrl = await getStreamWithYtdl(videoId);
-      method = 'ytdl-core';
-      console.log(`Success with ${method}`);
-    } catch (err1) {
-      // Try yt-dlp info method as second attempt
-      try {
-        streamUrl = await getStreamWithYtDlp(videoId);
-        method = 'yt-dlp';
-        console.log(`Success with ${method}`);
-      } catch (err2) {
-        // If both fail, try direct proxy streaming
-        console.log('Attempting proxy streaming method...');
-        const streaming = await getStreamAsProxy(videoId, res);
-        if (streaming) {
-          return; // Response already handled by proxy stream
-        }
-        throw new Error('All streaming methods failed');
-      }
-    }
-    
-    // If we got a URL (not streaming directly), cache and return it
-    if (streamUrl) {
-      // Cache the URL
+    console.log('Trying direct audio stream method...');
+    await getDirectAudioStream(videoId, res);
+    return; // Response already handled
+  } catch (err) {
+    console.log('Direct stream failed:', err.message);
+  }
+  
+  // Try ytdl-core with retries
+  try {
+    const result = await getStreamWithYtdl(videoId);
+    if (result && result.url) {
       streamCache.set(videoId, {
-        url: streamUrl,
-        timestamp: Date.now(),
-        method: method
+        url: result.url,
+        method: result.method,
+        timestamp: Date.now()
       });
       
-      res.json({
-        url: streamUrl,
-        source: method,
+      return res.json({
+        url: result.url,
+        source: result.method,
         videoId: videoId
       });
     }
-    
   } catch (err) {
-    console.error('Stream error:', err);
-    res.status(500).json({ 
-      error: 'Failed to get audio stream',
-      details: err.message,
-      suggestion: 'Try a different video or check back later'
-    });
+    console.log('ytdl-core failed:', err.message);
   }
+  
+  // Try yt-dlp as last resort
+  try {
+    const result = await getStreamWithYtDlp(videoId);
+    if (result && result.url) {
+      streamCache.set(videoId, {
+        url: result.url,
+        method: result.method,
+        timestamp: Date.now()
+      });
+      
+      return res.json({
+        url: result.url,
+        source: result.method,
+        videoId: videoId
+      });
+    }
+  } catch (err) {
+    console.log('yt-dlp failed:', err.message);
+  }
+  
+  // If all methods fail, mark as failed
+  failedCache.set(videoId, {
+    retryAfter: 120 // 2 minutes
+  });
+  
+  res.status(429).json({
+    error: 'Unable to get stream due to rate limiting. Please try a different song or wait a moment.',
+    retryAfter: 120
+  });
 });
 
-// Alternative direct audio endpoint (returns audio directly)
-app.get('/audio/:id', async (req, res) => {
+// Alternative endpoint that returns audio directly (better for rate limits)
+app.get('/audio/:id', streamLimiter, async (req, res) => {
   const videoId = req.params.id;
   
   try {
-    const url = `https://www.youtube.com/watch?v=${videoId}`;
-    
-    // Set headers for audio streaming
-    res.setHeader('Content-Type', 'audio/mpeg');
-    res.setHeader('Accept-Ranges', 'bytes');
-    
-    // Use yt-dlp to stream audio directly
-    const stream = ytDlpWrap.execStream([
-      url,
-      '-f', 'bestaudio',
-      '--extract-audio',
-      '--audio-format', 'mp3',
-      '--audio-quality', '2',
-      '-o', '-'
-    ]);
-    
-    stream.stdout.pipe(res);
-    
-    stream.on('error', (err) => {
-      console.error('Audio stream error:', err);
-      if (!res.headersSent) {
-        res.status(500).json({ error: 'Audio stream failed' });
-      }
-    });
-    
+    await getDirectAudioStream(videoId, res);
   } catch (err) {
-    console.error('Audio endpoint error:', err);
-    res.status(500).json({ error: err.message });
+    console.error('Audio stream error:', err);
+    res.status(429).json({ 
+      error: 'Stream unavailable due to rate limits. Please try again in a moment.' 
+    });
   }
 });
 
@@ -285,7 +326,10 @@ app.get('/health', (req, res) => {
   res.json({ 
     status: 'OK', 
     timestamp: new Date().toISOString(),
-    methods: ['ytdl-core', 'yt-dlp', 'proxy']
+    cacheStats: {
+      streamCacheSize: streamCache.keys().length,
+      failedCacheSize: failedCache.keys().length
+    }
   });
 });
 
@@ -298,17 +342,7 @@ app.use((err, req, res, next) => {
   });
 });
 
-// 404 handler
-app.use((req, res) => {
-  res.status(404).json({ error: 'Endpoint not found' });
-});
-
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`YSN MUSIC Backend Running On Port ${PORT}`);
-  console.log(`Available endpoints:`);
-  console.log(`  - GET /search?q=query`);
-  console.log(`  - GET /stream/:id`);
-  console.log(`  - GET /audio/:id (direct audio stream)`);
-  console.log(`  - GET /health`);
 });
