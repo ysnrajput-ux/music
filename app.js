@@ -1,5 +1,8 @@
 let favorites = JSON.parse(
-  function updateFavoriteCount(){
+localStorage.getItem("favorites") || "[]"
+);
+
+function updateFavoriteCount(){
 
 const favCount =
 document.getElementById("favCount");
@@ -13,8 +16,6 @@ favorites.length;
 }
 
 }
-localStorage.getItem("favorites") || "[]"
-);
 function toggleFavorite(song){
 
 const exists = favorites.find(
@@ -214,20 +215,6 @@ favorites.length
 
 }
 
-trendingBtn.onclick = () => {
-
-alert("🔥 Trending Section");
-
-};
-
-favoritesBtn.onclick = () => {
-
-alert(
-"❤️ Favorites Saved: " +
-favorites.length
-);
-
-};
 const playlistBtn =
 document.getElementById("playlistBtn");
 
