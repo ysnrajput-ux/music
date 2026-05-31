@@ -57,11 +57,11 @@ if(list.length === 0){
   class="w-full h-56 object-cover rounded-2xl mb-4"
   >
 
-  <h3 class="text-xl font-bold">
+  <h3 class="text-xl font-bold text-green-400">
     ${song.title}
   </h3>
 
-  <p class="text-gray-400 mt-1">
+  <p class="text-gray-300 mt-1">
     ${song.artist}
   </p>
 
