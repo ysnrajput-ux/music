@@ -214,3 +214,28 @@ favorites.length
 );
 
 };
+const playlistBtn =
+document.getElementById("playlistBtn");
+
+const settingsBtn =
+document.getElementById("settingsBtn");
+
+if(playlistBtn){
+
+playlistBtn.onclick = () => {
+
+alert("🎵 Playlist Feature Coming Soon");
+
+};
+
+}
+
+if(settingsBtn){
+
+settingsBtn.onclick = () => {
+
+alert("⚙ Settings Panel Coming Soon");
+
+};
+
+}
