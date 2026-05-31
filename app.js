@@ -199,3 +199,35 @@ favorites.length
 };
 
 }
+const homeBtn =
+document.getElementById("homeBtn");
+
+const trendingBtn =
+document.getElementById("trendingBtn");
+
+const favoritesBtn =
+document.getElementById("favoritesBtn");
+
+homeBtn.onclick = () => {
+
+window.scrollTo({
+top:0,
+behavior:"smooth"
+});
+
+};
+
+trendingBtn.onclick = () => {
+
+alert("🔥 Trending Section");
+
+};
+
+favoritesBtn.onclick = () => {
+
+alert(
+"❤️ Favorites Saved: " +
+favorites.length
+);
+
+};
