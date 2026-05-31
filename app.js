@@ -2,78 +2,51 @@ const searchInput = document.getElementById("searchInput");
 const songList = document.getElementById("songList");
 
 const demoSongs = [
-{
-title:"Kesariya",
-artist:"Arijit Singh"
-},
-{
-title:"Tum Hi Ho",
-artist:"Arijit Singh"
-},
-{
-title:"Apna Bana Le",
-artist:"Arijit Singh"
-},
-{
-title:"Heeriye",
-artist:"Arijit Singh"
-},
-{
-title:"Shape Of You",
-artist:"Ed Sheeran"
-},
-{
-title:"Blinding Lights",
-artist:"The Weeknd"
-}
+  { title: "Kesariya", artist: "Arijit Singh" },
+  { title: "Tum Hi Ho", artist: "Arijit Singh" },
+  { title: "Apna Bana Le", artist: "Arijit Singh" },
+  { title: "Heeriye", artist: "Arijit Singh" },
+  { title: "Shape Of You", artist: "Ed Sheeran" },
+  { title: "Blinding Lights", artist: "The Weeknd" }
 ];
 
-function renderSongs(list){
+function renderSongs(list) {
 
-songList.innerHTML="";
+  songList.innerHTML = "";
 
-list.forEach(song=>{
+  list.forEach(song => {
 
-songList.innerHTML += `
-<div class="glass p-5 rounded-2xl">
+    songList.innerHTML += `
+      <div class="glass p-5 rounded-2xl">
+        <h3 class="text-xl font-bold">${song.title}</h3>
+        <p class="text-gray-400 mt-2">${song.artist}</p>
 
-<h3 class="text-xl font-bold">
-${song.title}
-</h3>
+        <button class="bg-green-400 text-black px-4 py-2 rounded-xl mt-4">
+          ▶ Play
+        </button>
+      </div>
+    `;
 
-<p class="text-gray-400 mt-2">
-${song.artist}
-</p>
-
-<button
-class="bg-green-400 text-black px-5 py-2 rounded-xl mt-4"
->
-▶ Play
-</button>
-
-</div>
-`;
-
-});
+  });
 
 }
 
 renderSongs([]);
-songList.style.display = "none";
-searchInput.addEventListener("keyup", (e) => {
 
-    const value = e.target.value.toLowerCase().trim();
+searchInput.addEventListener("input", () => {
 
-    if (value === "") {
-        renderSongs([]);
-        return;
-    }
+  const value = searchInput.value.toLowerCase().trim();
 
-    const filtered = demoSongs.filter(song =>
-        song.title.toLowerCase().includes(value) ||
-        song.artist.toLowerCase().includes(value)
-    );
+  if (value === "") {
+    renderSongs([]);
+    return;
+  }
 
-    renderSongs(filtered);
+  const results = demoSongs.filter(song =>
+    song.title.toLowerCase().includes(value) ||
+    song.artist.toLowerCase().includes(value)
+  );
+
+  renderSongs(results);
 
 });
