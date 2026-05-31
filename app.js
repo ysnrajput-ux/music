@@ -14,14 +14,22 @@ const miniTitle = document.getElementById('miniTitle');
 const miniArtist = document.getElementById('miniArtist');
 const playPauseBtn = document.getElementById('playPauseBtn');
 const closePlayerBtn = document.getElementById('closePlayerBtn');
+const miniPlayerExpand = document.getElementById('miniPlayerExpand');
+
+const videoSection = document.getElementById('videoSection');
+const youtubePlayer = document.getElementById('youtubePlayer');
+const videoTitle = document.getElementById('videoTitle');
+const videoArtist = document.getElementById('videoArtist');
+const closeVideoBtn = document.getElementById('closeVideoBtn');
 
 let currentSong = null;
 let isPlaying = false;
 let retryTimeout = null;
+let useVideoFallback = false;
 
 // Initialize
 window.addEventListener('load', () => {
-  searchSongs('Trending Punjabi Bollywood English Songs');
+   searchSongs('Trending Punjabi Bollywood English Songs');
 });
 
 // Search button click
@@ -46,10 +54,10 @@ searchInput.addEventListener('keypress', (e) => {
 
 // Play/Pause button
 playPauseBtn.onclick = () => {
-  if (audio.paused) {
+  if (audio.paused && !useVideoFallback) {
     audio.play();
     playPauseBtn.textContent = '⏸';
-  } else {
+  } else if (!useVideoFallback) {
     audio.pause();
     playPauseBtn.textContent = '▶';
   }
@@ -57,12 +65,26 @@ playPauseBtn.onclick = () => {
 
 // Close player button
 closePlayerBtn.onclick = () => {
-  miniPlayer.classList.add('hidden');
-  audio.pause();
-  audio.src = '';
-  isPlaying = false;
-  document.title = 'YSN MUSIC';
-  if (retryTimeout) clearTimeout(retryTimeout);
+  closeMiniPlayer();
+};
+
+// Close video button
+closeVideoBtn.onclick = () => {
+  closeVideoPlayer();
+};
+
+// Expand mini player to full video
+miniPlayerExpand.onclick = () => {
+  if (currentSong) {
+    expandToVideoPlayer(currentSong);
+  }
+};
+
+// Mini cover click to expand
+miniCover.onclick = () => {
+  if (currentSong) {
+    expandToVideoPlayer(currentSong);
+  }
 };
 
 // Audio event handlers
@@ -77,8 +99,11 @@ audio.onpause = () => {
 };
 
 audio.onerror = () => {
-  showToast('Playback error. Try another song.');
-  playPauseBtn.textContent = '▶';
+  if (!useVideoFallback && currentSong) {
+    console.log('Audio failed, falling back to video');
+    showToast('Audio stream failed, opening video player...');
+    expandToVideoPlayer(currentSong);
+  }
 };
 
 // Search function
@@ -167,8 +192,8 @@ function renderSongs(songs) {
   });
 }
 
-// UPDATED: playSongWithRetry function
-async function playSongWithRetry(song, retries = 3) {
+// Play song with retry logic
+async function playSongWithRetry(song, retries = 2) {
   currentSong = song;
   showToast(`Loading: ${song.title}`);
   
@@ -178,9 +203,8 @@ async function playSongWithRetry(song, retries = 3) {
       
       const res = await fetch(`${API}/stream/${song.videoId}`);
       
-      // Handle rate limiting
       if (res.status === 429) {
-        const waitTime = 2000 * (i + 1); // 2s, 4s, 6s
+        const waitTime = 2000 * (i + 1);
         showToast(`Rate limited. Retrying in ${waitTime/1000}s... (${i + 1}/${retries})`);
         await new Promise(resolve => setTimeout(resolve, waitTime));
         continue;
@@ -197,32 +221,13 @@ async function playSongWithRetry(song, retries = 3) {
       }
       
       // Success - play the audio
+      useVideoFallback = false;
       audio.src = data.url;
       await audio.play();
       isPlaying = true;
       
       // Update mini player
-      miniPlayer.classList.remove('hidden');
-      miniCover.src = song.thumbnail || 'https://via.placeholder.com/80x80?text=No+Image';
-      miniTitle.textContent = song.title;
-      miniArtist.textContent = song.artist;
-      playPauseBtn.textContent = '⏸';
-      
-      document.title = `${song.title} - YSN MUSIC`;
-      
-      // Media Session API
-      if ('mediaSession' in navigator) {
-        navigator.mediaSession.metadata = new MediaMetadata({
-          title: song.title,
-          artist: song.artist,
-          artwork: [
-            { src: song.thumbnail, sizes: '512x512', type: 'image/jpeg' }
-          ]
-        });
-        
-        navigator.mediaSession.setActionHandler('play', () => audio.play());
-        navigator.mediaSession.setActionHandler('pause', () => audio.pause());
-      }
+      updateMiniPlayer(song);
       
       showToast(`Now playing: ${song.title}`);
       return true;
@@ -231,38 +236,98 @@ async function playSongWithRetry(song, retries = 3) {
       console.error(`Attempt ${i + 1} failed:`, err.message);
       
       if (i === retries - 1) {
-        // Last attempt failed
-        showToast(`Failed to play "${song.title}". Please try another song.`);
+        // Last attempt failed, use video fallback
+        showToast('Audio unavailable, opening video player...');
+        expandToVideoPlayer(song);
         return false;
       }
       
-      // Wait before retry
       await new Promise(resolve => setTimeout(resolve, 2000));
     }
   }
   return false;
 }
 
-// Direct audio endpoint (fallback method)
-async function playSongDirect(song) {
-  try {
-    showToast(`Streaming directly: ${song.title}`);
-    audio.src = `${API}/audio/${song.videoId}`;
-    await audio.play();
-    isPlaying = true;
+// Expand to full video player
+function expandToVideoPlayer(song) {
+  currentSong = song;
+  useVideoFallback = true;
+  
+  // Close mini player if open
+  closeMiniPlayer();
+  
+  // Show video section with animation
+  videoSection.classList.remove('hidden');
+  videoSection.style.animation = 'none';
+  videoSection.offsetHeight; // Trigger reflow
+  videoSection.classList.add('video-expand');
+  
+  // Set video source
+  const videoUrl = `https://www.youtube.com/embed/${song.videoId}?autoplay=1&enablejsapi=1`;
+  youtubePlayer.src = videoUrl;
+  videoTitle.textContent = song.title;
+  videoArtist.textContent = song.artist;
+  
+  // Stop audio if playing
+  audio.pause();
+  audio.src = '';
+  
+  // Update document title
+  document.title = `${song.title} - YSN MUSIC (Video)`;
+  
+  showToast('Video player opened');
+}
+
+// Close video player
+function closeVideoPlayer() {
+  videoSection.classList.remove('video-expand');
+  videoSection.classList.add('video-collapse');
+  
+  setTimeout(() => {
+    videoSection.classList.add('hidden');
+    videoSection.classList.remove('video-collapse');
+    youtubePlayer.src = '';
     
-    miniPlayer.classList.remove('hidden');
-    miniCover.src = song.thumbnail;
-    miniTitle.textContent = song.title;
-    miniArtist.textContent = song.artist;
-    playPauseBtn.textContent = '⏸';
+    // If we have a current song and audio is available, try to resume audio
+    if (currentSong && !useVideoFallback) {
+      playSong(currentSong);
+    }
+  }, 500);
+}
+
+// Update mini player UI
+function updateMiniPlayer(song) {
+  miniPlayer.classList.remove('hidden');
+  miniCover.src = song.thumbnail || 'https://via.placeholder.com/80x80?text=No+Image';
+  miniTitle.textContent = song.title;
+  miniArtist.textContent = song.artist;
+  playPauseBtn.textContent = audio.paused ? '▶' : '⏸';
+  
+  // Media Session API
+  if ('mediaSession' in navigator) {
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: song.title,
+      artist: song.artist,
+      artwork: [
+        { src: song.thumbnail, sizes: '512x512', type: 'image/jpeg' }
+      ]
+    });
     
-    return true;
-  } catch (err) {
-    console.error('Direct playback error:', err);
-    showToast('Playback failed. Please try another song.');
-    return false;
+    navigator.mediaSession.setActionHandler('play', () => audio.play());
+    navigator.mediaSession.setActionHandler('pause', () => audio.pause());
   }
+}
+
+// Close mini player
+function closeMiniPlayer() {
+  miniPlayer.classList.add('hidden');
+  if (!useVideoFallback) {
+    audio.pause();
+    audio.src = '';
+  }
+  isPlaying = false;
+  document.title = 'YSN MUSIC';
+  if (retryTimeout) clearTimeout(retryTimeout);
 }
 
 // Main play function
@@ -270,14 +335,13 @@ async function playSong(song) {
   // Clear any existing retry timeout
   if (retryTimeout) clearTimeout(retryTimeout);
   
-  // Try with retry logic first
-  const success = await playSongWithRetry(song, 3);
-  
-  // If retry fails, try direct method
-  if (!success) {
-    console.log('Retry failed, trying direct method...');
-    await playSongDirect(song);
+  // Close video player if open
+  if (!videoSection.classList.contains('hidden')) {
+    closeVideoPlayer();
   }
+  
+  // Try with retry logic
+  await playSongWithRetry(song, 2);
 }
 
 // Helper functions
@@ -311,3 +375,23 @@ function escapeHtml(str) {
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js').catch(console.log);
 }
+
+// Keyboard shortcuts
+document.addEventListener('keydown', (e) => {
+  // Space bar for play/pause
+  if (e.code === 'Space' && !e.target.matches('input, textarea')) {
+    e.preventDefault();
+    if (!useVideoFallback && currentSong) {
+      if (audio.paused) {
+        audio.play();
+      } else {
+        audio.pause();
+      }
+    }
+  }
+  
+  // Escape key to close video
+  if (e.code === 'Escape' && !videoSection.classList.contains('hidden')) {
+    closeVideoPlayer();
+  }
+});
