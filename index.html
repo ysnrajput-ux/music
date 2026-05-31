@@ -102,16 +102,72 @@
     }
 
     @keyframes pulse {
-      0%, 100% {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(100%);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes slideOut {
+      from {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      to {
+        opacity: 0;
+        transform: translateY(100%);
+      }
+    }
+
+    @keyframes expandVideo {
+      from {
+        width: 0px;
+        height: 0px;
+        opacity: 0;
+      }
+      to {
+        width: 100%;
+        height: auto;
         opacity: 1;
       }
-      50% {
-        opacity: 0.5;
+    }
+
+    @keyframes collapseVideo {
+      from {
+        width: 100%;
+        height: auto;
+        opacity: 1;
+      }
+      to {
+        width: 0px;
+        height: 0px;
+        opacity: 0;
       }
     }
 
     .loading {
       animation: pulse 1.5s ease-in-out infinite;
+    }
+
+    .video-expand {
+      animation: expandVideo 0.5s ease-out forwards;
+    }
+
+    .video-collapse {
+      animation: collapseVideo 0.5s ease-out forwards;
+    }
+
+    .mini-player-slide {
+      animation: slideIn 0.3s ease-out;
     }
 
     @media (min-width: 768px) {
@@ -189,6 +245,32 @@
         grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
       }
     }
+
+    .video-container {
+      max-width: 800px;
+      margin: 0 auto;
+      overflow: hidden;
+    }
+
+    iframe {
+      width: 100%;
+      height: 450px;
+      border-radius: 16px;
+    }
+
+    @media (max-width: 768px) {
+      iframe {
+        height: 250px;
+      }
+    }
+
+    .expand-icon {
+      transition: transform 0.3s ease;
+    }
+
+    .expand-icon:hover {
+      transform: scale(1.1);
+    }
   </style>
 </head>
 <body>
@@ -241,6 +323,33 @@
         </button>
       </div>
 
+      <!-- Video Player Section -->
+      <div id="videoSection" class="hidden mb-8">
+        <div class="video-container relative">
+          <div class="glass-card p-4 rounded-2xl">
+            <div class="flex justify-between items-center mb-4">
+              <h3 class="text-lg font-semibold text-green-400">Now Playing</h3>
+              <button id="closeVideoBtn" class="text-gray-400 hover:text-white transition text-2xl">
+                ✕
+              </button>
+            </div>
+            <div class="relative">
+              <iframe
+                id="youtubePlayer"
+                src=""
+                frameborder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowfullscreen
+              ></iframe>
+            </div>
+            <div class="mt-4">
+              <h4 id="videoTitle" class="font-semibold text-white">Song Title</h4>
+              <p id="videoArtist" class="text-gray-400 text-sm">Artist</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Results Section -->
       <div id="songList" class="song-grid pb-32"></div>
       
@@ -262,14 +371,14 @@
 <!-- Mini Player (Mobile) -->
 <div
   id="miniPlayer"
-  class="hidden desktop-player glass-card p-4 rounded-xl items-center gap-3 z-50 shadow-2xl"
+  class="hidden desktop-player glass-card p-4 rounded-xl items-center gap-3 z-50 shadow-2xl mini-player-slide"
 >
   <img
     id="miniCover"
-    class="w-14 h-14 rounded-lg object-cover"
+    class="w-14 h-14 rounded-lg object-cover cursor-pointer"
     alt="Album art"
   />
-  <div class="flex-1 overflow-hidden">
+  <div class="flex-1 overflow-hidden cursor-pointer" id="miniPlayerExpand">
     <h2 id="miniTitle" class="font-semibold truncate text-white">Title</h2>
     <p id="miniArtist" class="text-gray-400 text-sm truncate">Artist</p>
   </div>
