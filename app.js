@@ -1,4 +1,18 @@
 let favorites = JSON.parse(
+  function updateFavoriteCount(){
+
+const favCount =
+document.getElementById("favCount");
+
+if(favCount){
+
+favCount.innerText =
+"❤️ Favorites: " +
+favorites.length;
+
+}
+
+}
 localStorage.getItem("favorites") || "[]"
 );
 function toggleFavorite(song){
@@ -23,7 +37,7 @@ localStorage.setItem(
 "favorites",
 JSON.stringify(favorites)
 );
-
+updateFavoriteCount();
 }
 const searchInput = document.getElementById("searchInput");
 const songList = document.getElementById("songList");
