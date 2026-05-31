@@ -139,7 +139,7 @@ const themes = [
 ];
 
 let currentTheme = 0;
-
+console.log(themeBtn);
 themeBtn.onclick = () => {
 
 currentTheme++;
