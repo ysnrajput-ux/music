@@ -17,9 +17,20 @@ favorites.length;
 }
 
 }
-
 function updatePlayCount(){
 
+const playCount =
+document.getElementById("playCount");
+
+if(playCount){
+
+playCount.innerText =
+"▶ Played: " +
+recentlyPlayed;
+
+}
+
+}
 
 function toggleFavorite(song){
 
@@ -133,6 +144,7 @@ btn.innerHTML = "💚";
 
 renderSongs([]);
 updateFavoriteCount();
+updatePlayCount();
 searchInput.addEventListener("input", () => {
 
   const value = searchInput.value.toLowerCase().trim();
