@@ -127,14 +127,13 @@ if(list.length === 0){
 
   <div class="flex gap-3 mt-5">
 
-    <button
-class="bg-green-400 text-black px-5 py-2 rounded-xl font-bold play-btn hover:scale-110 transition-all"
+   <button
+class="bg-green-400 text-black px-5 py-2 rounded-xl font-bold play-btn hover:scale-110 transition-all">
 ▶ Play
 </button>
-   <button
+ <button
 class="glass px-4 py-2 rounded-xl fav-btn">
 ${favorites.find(s => s.title === song.title) ? "💚" : "❤️"}
-❤️
 </button>
   </div>
 
