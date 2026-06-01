@@ -217,7 +217,11 @@ totalSearches;
   );
 
   renderSongs(results);
-
+document.getElementById(
+"searchCount"
+).innerText =
+"Results: " +
+results.length;
 });
 console.log("APP LOADED");
 searchInput.addEventListener("input", () => {
