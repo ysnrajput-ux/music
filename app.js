@@ -1,4 +1,5 @@
 let favorites = JSON.parse(
+  let recentlyPlayed = 0;
 localStorage.getItem("favorites") || "[]"
 );
 
