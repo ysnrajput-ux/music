@@ -81,7 +81,7 @@ if(list.length === 0){
   list.forEach(song => {
 
   songList.innerHTML += `
-<div class="glass p-5 rounded-3xl hover:scale-105 transition-all duration-300">
+<div class="glass p-5 rounded-3xl hover:scale-105 hover:-translate-y-2 transition-all duration-300">
 
   <img
   src="https://picsum.photos/400?random=${Math.floor(Math.random()*1000)}"
@@ -99,11 +99,12 @@ if(list.length === 0){
   <div class="flex gap-3 mt-5">
 
     <button
-class="bg-green-400 text-black px-5 py-2 rounded-xl font-bold play-btn">
+class="bg-green-400 text-black px-5 py-2 rounded-xl font-bold play-btn hover:scale-110 transition-all"
 ▶ Play
 </button>
    <button
 class="glass px-4 py-2 rounded-xl fav-btn">
+${favorites.find(s => s.title === song.title) ? "💚" : "❤️"}
 ❤️
 </button>
   </div>
