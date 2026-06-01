@@ -4,7 +4,20 @@ localStorage.getItem("favorites") || "[]"
 );
 
 function updateFavoriteCount(){
+function updatePlayCount(){
 
+const playCount =
+document.getElementById("playCount");
+
+if(playCount){
+
+playCount.innerText =
+"▶ Played: " +
+recentlyPlayed;
+
+}
+
+}
 const favCount =
 document.getElementById("favCount");
 
