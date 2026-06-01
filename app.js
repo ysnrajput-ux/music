@@ -3,6 +3,7 @@ localStorage.getItem("favorites") || "[]"
 );
 
 let recentlyPlayed = 0;
+let totalSearches = 0;
 function updateFavoriteCount(){
 
 const favCount =
@@ -160,7 +161,18 @@ searchInput.addEventListener("input", () => {
 
     return;
 }
+totalSearches++;
 
+const searchCount =
+document.getElementById("searchCount");
+
+if(searchCount){
+
+searchCount.innerText =
+"🔎 Searches: " +
+totalSearches;
+
+}
   const results = demoSongs.filter(song =>
     song.title.toLowerCase().includes(value) ||
     song.artist.toLowerCase().includes(value)
@@ -280,6 +292,59 @@ if(settingsBtn){
 settingsBtn.onclick = () => {
 
 alert("⚙ Settings Panel Coming Soon");
+
+};
+
+}
+const hour =
+new Date().getHours();
+
+const welcomeText =
+document.getElementById("welcomeText");
+
+if(welcomeText){
+
+if(hour < 12){
+
+welcomeText.innerText =
+"🌞 Good Morning";
+
+}
+else if(hour < 18){
+
+welcomeText.innerText =
+"☀️ Good Afternoon";
+
+}
+else{
+
+welcomeText.innerText =
+"🌙 Good Evening";
+
+}
+
+}
+const randomBtn =
+document.getElementById("randomBtn");
+
+if(randomBtn){
+
+randomBtn.onclick = ()=>{
+
+const randomSong =
+demoSongs[
+Math.floor(
+Math.random() *
+demoSongs.length
+)
+];
+
+alert(
+"🎵 " +
+randomSong.title +
+"\n" +
+randomSong.artist
+);
 
 };
 
