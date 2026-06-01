@@ -189,8 +189,14 @@ const themes = [
 "#2d033b",
 "#202020"
 ];
+let currentTheme =
+Number(
+localStorage.getItem("theme")
+) || 0;
 
-let currentTheme = 0;
+document.body.style.background =
+themes[currentTheme];
+
 console.log(themeBtn);
 themeBtn.onclick = () => {
 
@@ -202,7 +208,10 @@ currentTheme = 0;
 
 document.body.style.background =
 themes[currentTheme];
-
+localStorage.setItem(
+"theme",
+currentTheme
+);
 };
 const homeBtn =
 document.getElementById("homeBtn");
