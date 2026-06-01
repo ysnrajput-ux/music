@@ -100,7 +100,21 @@ const favBtns =
 document.querySelectorAll(".fav-btn");
 
 favBtns.forEach((btn,index)=>{
+const playBtns =
+document.querySelectorAll(".play-btn");
 
+playBtns.forEach((btn,index)=>{
+
+btn.onclick = ()=>{
+
+alert(
+"▶ Playing: " +
+list[index].title
+);
+
+};
+
+});
 btn.onclick = ()=>{
 
 toggleFavorite(list[index]);
