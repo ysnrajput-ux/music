@@ -3,6 +3,7 @@ localStorage.getItem("favorites") || "[]"
 );
 
 let recentlyPlayed = 0;
+let recentSongs = [];
 let totalSearches = 0;
 function updateFavoriteCount(){
 
@@ -32,7 +33,34 @@ recentlyPlayed;
 }
 
 }
+function updateRecentSongs(){
 
+const recentList =
+document.getElementById("recentList");
+
+if(!recentList){
+return;
+}
+
+recentList.innerHTML = "";
+
+recentSongs.forEach(song => {
+
+recentList.innerHTML += `
+<div class="glass p-4 rounded-2xl">
+<h3 class="font-bold text-green-400">
+${song.title}
+</h3>
+
+<p class="text-gray-400">
+${song.artist}
+</p>
+</div>
+`;
+
+});
+
+}
 function toggleFavorite(song){
 
 const exists = favorites.find(
@@ -133,7 +161,17 @@ alert(
 "▶ Playing: " +
 list[index].title
 );
+recentSongs.unshift(
+list[index]
+);
 
+if(recentSongs.length > 6){
+
+recentSongs.pop();
+
+}
+
+updateRecentSongs();
 };
 
 });
