@@ -123,6 +123,10 @@ playBtns.forEach((btn,index)=>{
 
 btn.onclick = ()=>{
 
+recentlyPlayed++;
+
+updatePlayCount();
+
 alert(
 "▶ Playing: " +
 list[index].title
