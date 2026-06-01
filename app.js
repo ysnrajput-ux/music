@@ -83,10 +83,9 @@ if(list.length === 0){
   <div class="flex gap-3 mt-5">
 
     <button
-    class="bg-green-400 text-black px-5 py-2 rounded-xl font-bold">
-      ▶ Play
-    </button>
-
+class="bg-green-400 text-black px-5 py-2 rounded-xl font-bold play-btn">
+▶ Play
+</button>
    <button
 class="glass px-4 py-2 rounded-xl fav-btn">
 ❤️
