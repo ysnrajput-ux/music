@@ -387,3 +387,10 @@ randomSong.artist
 };
 
 }
+setTimeout(() => {
+
+alert(
+"🎵 Welcome Back To YSN MUSIC"
+);
+
+},2000);
