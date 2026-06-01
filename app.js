@@ -1,10 +1,37 @@
 let favorites = JSON.parse(
-  let recentlyPlayed = 0;
 localStorage.getItem("favorites") || "[]"
 );
 
+let recentlyPlayed = 0;
 function updateFavoriteCount(){
+
+const favCount =
+document.getElementById("favCount");
+
+if(favCount){
+
+favCount.innerText =
+"❤️ Favorites: " +
+favorites.length;
+
+}
+
+}
+
 function updatePlayCount(){
+
+const playCount =
+document.getElementById("playCount");
+
+if(playCount){
+
+playCount.innerText =
+"▶ Played: " +
+recentlyPlayed;
+
+}
+
+}
 
 const playCount =
 document.getElementById("playCount");
